@@ -47,8 +47,8 @@ Se quitaron "Bandeja" y "Evaluaciones", que no existen en el menú web.
 | Mi Perfil | | | ⬜ |
 
 ## Familia (menú web: Inicio · Agenda · Practicar en Casa · Centro de Recursos · Mi Perfil + Evaluación inicial, Programas, Chat, Formularios, Documentos, Tienda)
-| Inicio | HomeView | | 🟡 |
-| Agenda | MisCitasView + SolicitudCita | solicitar cambio / cancelar, videollamada | 🟡 |
+| Inicio | HomeView | racha, KPIs, próxima cita (estado, reprogramar/cancelar), programas, progreso (dominio, asistencia, horas), resumen de ARIA, mensajes del equipo | ✅ |
+| Agenda | MisCitasView + SolicitudCita | resumen del mes, solicitar cambio / cancelar, videollamada, virtual/presencial, contactar al centro | ✅ (sin calendario mensual) |
 | Practicar en Casa | EngagementView + ProgramasABAView | plan, práctica | 🟡 |
 | Centro de Recursos | ResourcesView + StoreView | recursos, pedir productos | 🟡 |
 | Chat | ChatFamilias + ChatInterface (ARIA) | | 🟡 |

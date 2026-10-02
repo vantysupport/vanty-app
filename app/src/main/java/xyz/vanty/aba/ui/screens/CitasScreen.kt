@@ -70,6 +70,7 @@ fun CitasScreen(e: Estado, vm: AppViewModel, pad: PaddingValues) {
     var hoja by remember { mutableStateOf<Cita?>(null) }
     PullToRefreshBox(e.refrescando, vm::refrescar, Modifier.fillMaxSize()) {
         LazyColumn(contentPadding = pad, verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+            item { ResumenMes(e) }
             item { Titulo(L("Próximas citas", "Upcoming")) }
             if (e.proximas.isEmpty()) item {
                 Tarjeta {
@@ -91,6 +92,7 @@ fun CitasScreen(e: Estado, vm: AppViewModel, pad: PaddingValues) {
                 item { Spacer(Modifier.width(1.dp)); Titulo(L("Historial", "History")) }
                 itemsIndexed(e.pasadas, key = { _, c -> "p" + c.id }) { i, c -> FilaCita(c, false, Modifier.aparecer(i + e.proximas.size)) {} }
             }
+            item { ContactoCentro(e) }
         }
     }
     hoja?.let { c -> HojaCitaFamilia(c, vm) { hoja = null } }
@@ -203,6 +205,10 @@ private fun FilaCita(c: Cita, futura: Boolean, modifier: Modifier, onClick: () -
             Column(Modifier.weight(1f)) {
                 Text(fechaLarga(c.fecha), style = MaterialTheme.typography.titleSmall, color = T.texto)
                 Text(listOfNotNull(hora12(c.hora).ifBlank { null }, c.servicio).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = T.secundario)
+                c.modalidad?.let { m ->
+                    Text(if (m.lowercase().startsWith("virt")) L("Virtual", "Virtual") else L("Presencial", "In person"),
+                        style = MaterialTheme.typography.labelSmall, color = T.acento)
+                }
             }
             val (texto, fondo, color) = if (futura && c.solicitudPendiente) Triple(L("Cambio pedido", "Change asked"), T.aviso.copy(alpha = 0.15f), T.aviso) else estado(c, futura)
             Etiqueta(texto, fondo, color)
@@ -222,4 +228,65 @@ private fun estado(c: Cita, futura: Boolean): Triple<String, Color, Color> {
         futura -> Triple(L("Agendada", "Scheduled"), T.acentoSuave, T.acento)
         else -> Triple(L("Pasada", "Past"), T.relleno, T.terciario)
     }
+}
+
+/** Resumen del mes como en "Mis citas" de la web: próximas, realizadas, canceladas y asistencia. */
+@Composable
+private fun ResumenMes(e: Estado) {
+    val mes = java.time.LocalDate.now().toString().take(7)
+    val delMes = e.pasadas.filter { it.fecha.startsWith(mes) }
+    val realizadas = delMes.count { it.status?.lowercase() in setOf("completed", "completada", "realizada") }
+    val canceladas = delMes.count { it.status?.lowercase() in setOf("cancelled", "cancelada") }
+    val asistencia = if (delMes.isEmpty()) null else realizadas * 100 / delMes.size
+    Tarjeta {
+        Text(L("Sesiones de ${e.hijo?.primerNombre.orEmpty()}", "${e.hijo?.primerNombre.orEmpty()}'s sessions"), style = MaterialTheme.typography.titleMedium, color = T.texto)
+        Text(L("El centro las programa; aquí las ves todas.", "Your center schedules them; you see them all here."), style = MaterialTheme.typography.bodySmall, color = T.terciario)
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Dato(e.proximas.size.toString(), L("Próximas", "Upcoming"))
+            Dato(realizadas.toString(), L("Realizadas", "Done"))
+            Dato(canceladas.toString(), L("Canceladas", "Cancelled"))
+            Dato(asistencia?.let { "$it%" } ?: "—", L("Asistencia", "Attendance"))
+        }
+    }
+}
+
+@Composable
+private fun Dato(valor: String, titulo: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(valor, style = MaterialTheme.typography.headlineSmall, color = T.acento, fontWeight = FontWeight.ExtraBold)
+        Text(titulo, style = MaterialTheme.typography.labelSmall, color = T.secundario)
+    }
+}
+
+/** "¿Necesitas un cambio?": escribir, llamar o enviar correo al centro (como en la web). */
+@Composable
+private fun ContactoCentro(e: Estado) {
+    val c = e.centro ?: return
+    val tel = c.telefono?.filter { it.isDigit() || it == '+' }.orEmpty()
+    if (tel.isBlank() && c.email.isNullOrBlank()) return
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    fun abrir(uri: String) = runCatching {
+        ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+    Tarjeta {
+        Text(L("¿Necesitas un cambio?", "Need a change?"), style = MaterialTheme.typography.titleMedium, color = T.texto)
+        Text(L("Cambios, cancelaciones o nuevas citas", "Changes, cancellations or new appointments"), style = MaterialTheme.typography.bodySmall, color = T.terciario)
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (tel.isNotBlank()) {
+                BotonContacto(L("Escribir", "Message"), Modifier.weight(1f)) { abrir("https://wa.me/${tel.filter { it.isDigit() }}") }
+                BotonContacto(L("Llamar", "Call"), Modifier.weight(1f)) { abrir("tel:$tel") }
+            }
+            if (!c.email.isNullOrBlank()) BotonContacto(L("Correo", "Email"), Modifier.weight(1f)) { abrir("mailto:${c.email}") }
+        }
+    }
+}
+
+@Composable
+private fun BotonContacto(texto: String, modifier: Modifier, onClick: () -> Unit) {
+    androidx.compose.foundation.layout.Box(
+        modifier.presionable(onClick = onClick).background(T.acentoSuave, RoundedCornerShape(50)).padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(texto, style = MaterialTheme.typography.labelLarge, color = T.acento) }
 }

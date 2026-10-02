@@ -60,6 +60,8 @@ data class Estado(
     val proximas: List<Cita> = emptyList(),
     val pasadas: List<Cita> = emptyList(),
     val programas: List<Programa> = emptyList(),
+    val resumenAria: xyz.vanty.aba.data.ResumenAria? = null,
+    val mensajesEquipo: List<xyz.vanty.aba.data.MensajeEquipo> = emptyList(),
     /** (programaId, fecha) practicados esta semana */
     val practicados: Set<Pair<String, String>> = emptySet(),
     val plan: Plan? = null,
@@ -330,6 +332,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val progs = async { Repo.programas(h.id) }
             val practica = async { runCatching { Repo.practicaSemana(h.id, fechas) }.getOrDefault(emptySet()) }
             val plan = async { Repo.plan(h.id) }
+            val resumen = async { runCatching { xyz.vanty.aba.data.RepoInicio.resumenAria(h.id) }.getOrNull() }
+            val mensajes = async { runCatching { xyz.vanty.aba.data.RepoInicio.mensajesEquipo(h.id) }.getOrDefault(emptyList()) }
             val r = racha.await()
             if (r != null) guardarRacha(r)
             programasOrig = progs.await(); proximasOrig = prox.await(); pasadasOrig = pas.await()
@@ -340,6 +344,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 it.copy(
                     racha = r ?: it.racha, stats = stats.await(), proximas = proximasOrig, pasadas = pasadasOrig,
                     programas = programasOrig, practicados = practica.await(), plan = plan.await(), cargandoDatos = false,
+                    resumenAria = resumen.await(), mensajesEquipo = mensajes.await(),
                 )
             }
         }

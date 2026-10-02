@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.EventAvailable
+import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,10 +51,12 @@ import xyz.vanty.aba.ui.comp.Aria
 import xyz.vanty.aba.ui.comp.AriaFlotando
 import xyz.vanty.aba.ui.comp.BotonGrande
 import xyz.vanty.aba.ui.comp.Contador
+import xyz.vanty.aba.ui.comp.Etiqueta
 import xyz.vanty.aba.ui.comp.IconoTono
 import xyz.vanty.aba.ui.comp.Llama
 import xyz.vanty.aba.ui.comp.Tarjeta
 import xyz.vanty.aba.ui.comp.aparecer
+import xyz.vanty.aba.ui.comp.presionable
 import xyz.vanty.aba.ui.theme.MarcaDegradado
 import xyz.vanty.aba.ui.theme.Naranja
 import xyz.vanty.aba.ui.theme.T
@@ -75,7 +78,10 @@ fun HomeScreen(e: Estado, vm: AppViewModel, pad: PaddingValues) {
             item { TarjetaRacha(e.racha, Modifier.aparecer(1)) { vm.irA(Pestana.Practicar) } }
             item { Kpis(e, Modifier.aparecer(2)) }
             item { ProximaCita(e.proximas.firstOrNull(), Modifier.aparecer(3)) { vm.irA(Pestana.Citas) } }
-            item { Progreso(e, Modifier.aparecer(4)) }
+            item { ProgramasInicio(e, vm, Modifier.aparecer(4)) }
+            item { Progreso(e, Modifier.aparecer(5)) }
+            e.resumenAria?.let { r -> item { ResumenDeAria(e, r, Modifier.aparecer(6)) } }
+            if (e.mensajesEquipo.isNotEmpty()) item { MensajesDelEquipo(e, vm, Modifier.aparecer(7)) }
         }
     }
 }
@@ -214,6 +220,20 @@ private fun ProximaCita(c: Cita?, modifier: Modifier, onClick: () -> Unit) {
                     )
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            // Estado de la cita, igual que la web: confirmada, por confirmar o cambio solicitado
+            when {
+                c.solicitudPendiente -> Etiqueta(L("Cambio solicitado · el centro te responderá", "Change requested · the center will reply"), T.acentoSuave, T.acento)
+                c.status in setOf("confirmed", "confirmada") -> Etiqueta(L("Confirmada", "Confirmed"), T.exito.copy(alpha = 0.14f), T.exito)
+                else -> Etiqueta(L("Por confirmar", "Pending confirmation"), T.relleno, T.secundario)
+            }
+            if (!c.solicitudPendiente) {
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BotonSecundario(L("Reprogramar", "Reschedule"), Modifier.weight(1f), onClick)
+                    BotonSecundario(L("Cancelar", "Cancel"), Modifier.weight(1f), onClick)
+                }
+            }
         }
     }
 }
@@ -238,6 +258,126 @@ private fun Progreso(e: Estado, modifier: Modifier) {
                 )
             }
         }
+        // Barras de la web: dominio, asistencia del mes (25 % por sesión) y horas (meta 20 h)
+        val mes = LocalDate.now().toString().take(7)
+        val sesionesMes = e.pasadas.count { it.fecha.startsWith(mes) && it.status in setOf("completed", "completada", "realizada") }
+        Spacer(Modifier.height(16.dp))
+        BarraProgreso(L("Dominio de objetivos", "Goal mastery"), s.masteryRate)
+        BarraProgreso(L("Asistencia este mes", "Attendance this month"), minOf(100, sesionesMes * 25))
+        BarraProgreso(L("Horas de terapia (meta 20 h)", "Therapy hours (goal 20h)"), minOf(100, (s.hoursTotal / 20 * 100).toInt()))
+        if (s.masteryRate >= 80) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                L("Rendimiento excepcional: ${e.hijo?.primerNombre ?: "tu peque"} domina sus objetivos con ${s.masteryRate}% de éxito.",
+                    "Outstanding: ${e.hijo?.primerNombre ?: "your child"} masters goals with ${s.masteryRate}% success."),
+                style = MaterialTheme.typography.bodySmall, color = T.exito,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BarraProgreso(titulo: String, pct: Int) {
+    val v by animateFloatAsState(pct.coerceIn(0, 100) / 100f, spring(0.8f, 120f), label = titulo)
+    Column(Modifier.padding(vertical = 5.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(titulo, style = MaterialTheme.typography.labelMedium, color = T.secundario)
+            Text("$pct%", style = MaterialTheme.typography.labelMedium, color = T.texto)
+        }
+        Spacer(Modifier.height(5.dp))
+        Box(Modifier.fillMaxWidth().height(8.dp).background(T.relleno, CircleShape)) {
+            Box(Modifier.fillMaxWidth(v).height(8.dp).background(MarcaDegradado, CircleShape))
+        }
+    }
+}
+
+@Composable
+private fun BotonSecundario(texto: String, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.presionable(onClick = onClick).background(T.relleno, RoundedCornerShape(50)).padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(texto, style = MaterialTheme.typography.labelLarge, color = T.texto) }
+}
+
+/** Programas que trabaja el niño (como "Programa" en el Inicio de la web). */
+@Composable
+private fun ProgramasInicio(e: Estado, vm: AppViewModel, modifier: Modifier) {
+    val activos = e.programas.filterNot { it.archivado }
+    Tarjeta(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconoTono(Icons.Rounded.TrackChanges, T.acentoSuave, T.acento)
+            Spacer(Modifier.width(10.dp))
+            Text(L("Lo que trabaja ${e.hijo?.primerNombre.orEmpty()}", "What ${e.hijo?.primerNombre.orEmpty()} is working on"), style = MaterialTheme.typography.titleMedium, color = T.texto, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        if (activos.isEmpty()) {
+            Text(L("El equipo aún no asignó programas.", "The team has not assigned programs yet."), style = MaterialTheme.typography.bodyMedium, color = T.secundario)
+        } else {
+            activos.take(5).forEach { p ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(p.titulo ?: "—", style = MaterialTheme.typography.titleSmall, color = T.texto, maxLines = 1)
+                        p.area?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = T.terciario, maxLines = 1) }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    when {
+                        p.dominado -> Etiqueta(L("Completado", "Completed"), T.exito.copy(alpha = 0.14f), T.exito)
+                        p.fase?.startsWith("interven") == true -> Etiqueta(L("En intervención", "In intervention"), T.acentoSuave, T.aviso)
+                        else -> Etiqueta(L("En curso", "In progress"), T.acentoSuave, T.acento)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (activos.size > 5) BotonSecundario(L("Ver los ${activos.size}", "See all ${activos.size}"), Modifier.weight(1f)) { vm.irA(Pestana.Practicar) }
+                BotonSecundario(L("Pregúntale a ARIA cómo practicarlos", "Ask ARIA how to practice them"), Modifier.weight(1f)) { vm.irA(Pestana.Aria) }
+            }
+        }
+    }
+}
+
+/** "¿Cómo va…?": resumen de ARIA con su confianza y fortalezas. */
+@Composable
+private fun ResumenDeAria(e: Estado, r: xyz.vanty.aba.data.ResumenAria, modifier: Modifier) {
+    Tarjeta(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AriaFlotando(Aria.EXPLICA, 56.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(L("¿Cómo va ${e.hijo?.primerNombre.orEmpty()}?", "How is ${e.hijo?.primerNombre.orEmpty()} doing?"), style = MaterialTheme.typography.titleMedium, color = T.texto, modifier = Modifier.weight(1f))
+            if (r.confianza > 0) Etiqueta(L("${r.confianza}% confianza", "${r.confianza}% confidence"), T.acentoSuave, T.acento)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(r.texto, style = MaterialTheme.typography.bodyMedium, color = T.texto)
+        if (r.fortalezas.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                r.fortalezas.forEach { Etiqueta("✓ $it", T.exito.copy(alpha = 0.14f), T.exito) }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(L("Resumen de ARIA, la asistente del centro", "Summary by ARIA, the center's assistant"), style = MaterialTheme.typography.labelSmall, color = T.terciario)
+    }
+}
+
+/** Mensajes que el equipo dejó para la familia, con acceso al chat. */
+@Composable
+private fun MensajesDelEquipo(e: Estado, vm: AppViewModel, modifier: Modifier) {
+    Tarjeta(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconoTono(Icons.Rounded.Forum, T.acentoSuave, T.acento)
+            Spacer(Modifier.width(10.dp))
+            Text(L("Mensajes del equipo", "Messages from the team"), style = MaterialTheme.typography.titleMedium, color = T.texto, modifier = Modifier.weight(1f))
+            Etiqueta("${e.mensajesEquipo.size}", T.acentoSuave, T.acento)
+        }
+        e.mensajesEquipo.forEach { m ->
+            Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                m.fecha?.take(10)?.let { Text(fechaLarga(it), style = MaterialTheme.typography.labelSmall, color = T.terciario) }
+                Text(m.titulo ?: L("Mensaje de tu terapeuta", "Message from your therapist"), style = MaterialTheme.typography.titleSmall, color = T.texto, maxLines = 1)
+                Text(m.cuerpo, style = MaterialTheme.typography.bodySmall, color = T.secundario, maxLines = 2)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        BotonSecundario(L("Abrir chat", "Open chat"), Modifier.fillMaxWidth()) { vm.irA(Pestana.Chat) }
     }
 }
 
