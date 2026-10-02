@@ -75,7 +75,10 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
     var web by remember { mutableStateOf<WebView?>(null) }
     var reintentos by remember(panel, vista) { mutableStateOf(0) }
     var reintentar by remember { mutableStateOf(0) }
-    val destino = "${BuildConfig.API_BASE_URL}/${Backend.idioma}/$panel?vista=$vista&embebido=1"
+    val ruta = "/${Backend.idioma}/$panel?vista=$vista&embebido=1"
+    // La web deja su cookie de sesión y redirige al apartado (GET /api/app/entrar con el token en el encabezado)
+    val destino = "${BuildConfig.API_BASE_URL}/api/app/entrar?destino=" + java.net.URLEncoder.encode(ruta, "UTF-8")
+    var token by remember { mutableStateOf("") }
 
     // Selector de archivos de la web (<input type="file">)
     var callbackArchivos by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
@@ -96,7 +99,8 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
 
     LaunchedEffect(panel, vista, reintentos, reintentar) {
         listo = false
-        val r = pasarSesion()
+        val (t, r) = tokenFresco()
+        token = t.orEmpty()
         error = r != null
         if (r != null) motivo = r
         listo = true
@@ -136,6 +140,8 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                             }
                             override fun onPageFinished(view: WebView, url: String?) {
                                 cargando = false
+                                // Se quedó en /api/app/entrar: la web no aceptó el token
+                                if (url?.contains("/api/app/entrar") == true) { motivo = "token"; error = true; return }
                                 view.evaluateJavascript(SCRIPT_DESCARGAS, null)
                             }
                         }
@@ -155,11 +161,11 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                         }
                         // Descargas normales (enlaces firmados): las abre el navegador o la app que corresponda
                         setDownloadListener { url, _, _, _, _ -> if (!url.startsWith("blob:")) abrirEnlace(c, url) }
-                        loadUrl(destino)
+                        loadUrl(destino, mapOf("Authorization" to "Bearer $token"))
                         web = this
                     }
                 },
-                update = { w -> if (w.url == null) w.loadUrl(destino) },
+                update = { w -> if (w.url == null) w.loadUrl(destino, mapOf("Authorization" to "Bearer $token")) },
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -182,41 +188,16 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
     BackHandler(enabled = web?.canGoBack() == true) { web?.goBack() }
 }
 
-/** Pone en el WebView la sesión actual como la cookie que lee la web (@supabase/ssr). */
-private suspend fun pasarSesion(): String? = runCatching<String?> {
+/** Token de acceso recién renovado (la web lo convierte en su cookie de sesión). Devuelve (token, motivo de error). */
+private suspend fun tokenFresco(): Pair<String?, String?> = runCatching {
     val auth = Backend.supabase.auth
     runCatching { auth.refreshCurrentSession() }
-    val s = auth.currentSessionOrNull() ?: return "sin_sesion"
-    val u = s.user
-    val json = buildJsonObject {
-        put("access_token", s.accessToken)
-        put("refresh_token", "app") // la web no puede renovar con el de la app (ver arriba)
-        put("expires_in", s.expiresIn)
-        put("expires_at", s.expiresAt.epochSeconds)
-        put("token_type", "bearer")
-        putJsonObject("user") {
-            put("id", u?.id); put("email", u?.email); put("aud", u?.aud ?: "authenticated"); put("role", u?.role ?: "authenticated")
-            putJsonObject("app_metadata") {}; putJsonObject("user_metadata") {}
-        }
-    }.toString()
-    val valor = "base64-" + Base64.encodeToString(json.toByteArray(), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-    val ref = Uri.parse(BuildConfig.SUPABASE_URL).host.orEmpty().substringBefore('.')
-    val nombre = "sb-$ref-auth-token"
-    val sitio = BuildConfig.API_BASE_URL
-    // Dominio base (sirve para vanty.xyz y www.vanty.xyz)
-    val dominio = Uri.parse(sitio).host.orEmpty().removePrefix("www.")
+    val s = auth.currentSessionOrNull() ?: return null to "sin_sesion"
     val cm = CookieManager.getInstance()
-    val attrs = "; Domain=$dominio; Path=/; Secure; SameSite=Lax; Max-Age=86400"
-    // Limpiar restos (cookie entera o en trozos) y escribir la nueva; @supabase/ssr parte en trozos de 3180
-    (listOf(nombre) + (0..5).map { "$nombre.$it" }).forEach {
-        cm.setCookie(sitio, "$it=; Path=/; Max-Age=0"); cm.setCookie(sitio, "$it=; Domain=$dominio; Path=/; Max-Age=0")
-    }
-    if (valor.length <= 3180) cm.setCookie(sitio, "$nombre=$valor$attrs")
-    else valor.chunked(3180).forEachIndexed { i, parte -> cm.setCookie(sitio, "$nombre.$i=$parte$attrs") }
-    cm.setCookie(sitio, "vanty_locale=${Backend.idioma}; Domain=$dominio; Path=/; Max-Age=31536000")
+    cm.setCookie(BuildConfig.API_BASE_URL, "vanty_locale=${Backend.idioma}; Path=/; Max-Age=31536000")
     cm.flush()
-    null
-}.getOrElse { "error: ${it.javaClass.simpleName} ${it.message?.take(80).orEmpty()}" }
+    s.accessToken to null
+}.getOrElse { null to "error: ${it.javaClass.simpleName} ${it.message?.take(80).orEmpty()}" }
 
 /** Recibe los archivos que la web genera en el navegador (informes Word/PDF, Excel, recibos) y los abre. */
 private class Puente(private val ctx: Context) {
