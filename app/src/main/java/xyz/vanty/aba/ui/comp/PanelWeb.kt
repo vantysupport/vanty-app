@@ -133,7 +133,21 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) { cargando = true }
                             // Navegación interna de la web (router) hacia el login
                             override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
-                                if (url?.contains("/login") == true) volverAEntrar()
+                                if (url?.contains("/login") == true) { volverAEntrar(); return }
+                                // Si se cambia el idioma dentro de la web (/es ↔ /en), la app lo sigue
+                                val l = Uri.parse(url ?: "").pathSegments.firstOrNull()
+                                if ((l == "es" || l == "en") && l != xyz.vanty.aba.util.Idioma.actual) {
+                                    xyz.vanty.aba.util.Idioma.actual = l
+                                    xyz.vanty.aba.data.Prefs(c).idioma = l
+                                }
+                            }
+                            // Si el motor de la web se cae (memoria, etc.) no se cierra la app: se vuelve a abrir el apartado
+                            override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
+                                (view.parent as? ViewGroup)?.removeView(view)
+                                view.destroy()
+                                web = null
+                                reintentar++
+                                return true
                             }
                             override fun onReceivedError(view: WebView, req: WebResourceRequest, err: android.webkit.WebResourceError) {
                                 if (req.isForMainFrame) { motivo = "red ${err.errorCode}"; error = true }

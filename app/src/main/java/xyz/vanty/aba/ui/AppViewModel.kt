@@ -348,7 +348,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }
         }
-        mostrarEnIdioma()
+        runCatching { mostrarEnIdioma() }
     }
 
     // ── Idioma (ES | EN, como el selector de la web) ────────────────────────
@@ -386,7 +386,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         Avisos.crearCanales(app)
         viewModelScope.launch {
             RachaWidget.actualizar(app)
-            mostrarEnIdioma()
+            // Sin conexión, la traducción falla: se queda el texto original (nunca cerrar la app)
+            runCatching { mostrarEnIdioma() }
             // El plan semanal lo traduce el servidor según el idioma pedido
             val h = _e.value.hijo ?: return@launch
             if (_e.value.fase == Fase.App) runCatching { Repo.plan(h.id) }.getOrNull()?.let { p -> _e.update { it.copy(plan = p) } }
