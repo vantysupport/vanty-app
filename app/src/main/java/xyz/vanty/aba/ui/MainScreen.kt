@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -90,6 +92,7 @@ import xyz.vanty.aba.ui.theme.Naranja
 import xyz.vanty.aba.ui.theme.T
 import xyz.vanty.aba.util.L
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun MainScreen(e: Estado, vm: AppViewModel) {
     val snack = remember { SnackbarHostState() }
@@ -101,7 +104,8 @@ fun MainScreen(e: Estado, vm: AppViewModel) {
     BackHandler(enabled = e.pestana != Pestana.Inicio) { vm.irA(if (e.pestana.enBarra) Pestana.Inicio else Pestana.Mas) }
 
     Box(Modifier.fillMaxSize().background(T.fondo)) {
-        Column(Modifier.fillMaxSize()) {
+        // Con el teclado abierto: el contenido sube sobre el teclado y la barra inferior se oculta
+        Column(Modifier.fillMaxSize().imePadding()) {
             BarraSuperior(e, vm)
             AnimatedContent(
                 targetState = e.pestana,
@@ -128,7 +132,7 @@ fun MainScreen(e: Estado, vm: AppViewModel) {
                     Pestana.Evaluacion -> EvaluacionInicialScreen(e, vm, pad)
                 }
             }
-            BarraInferior(e.pestana, vm::irA)
+            if (!androidx.compose.foundation.layout.WindowInsets.isImeVisible) BarraInferior(e.pestana, vm::irA)
         }
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 80.dp))
 

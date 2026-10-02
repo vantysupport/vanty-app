@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -63,6 +65,7 @@ import xyz.vanty.aba.ui.theme.T
 import xyz.vanty.aba.util.L
 import xyz.vanty.aba.util.monedaFmt
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun EquipoScreen(app: Estado, appVm: AppViewModel) {
     val vm: EquipoViewModel = viewModel()
@@ -83,7 +86,8 @@ fun EquipoScreen(app: Estado, appVm: AppViewModel) {
     }
 
     Box(Modifier.fillMaxSize().background(T.fondo)) {
-        Column(Modifier.fillMaxSize()) {
+        // Con el teclado abierto: el contenido sube sobre el teclado y la barra inferior se oculta
+        Column(Modifier.fillMaxSize().imePadding()) {
             Cabecera(e)
             AnimatedContent(
                 targetState = e.tab,
@@ -118,7 +122,7 @@ fun EquipoScreen(app: Estado, appVm: AppViewModel) {
                 }
             }
             val tabs = e.tabs(app::on)
-            BarraNav(tabs.map { item(it, e) }, if (e.tab in tabs) e.tab else TabEquipo.Mas, vm::irA)
+            if (!androidx.compose.foundation.layout.WindowInsets.isImeVisible) BarraNav(tabs.map { item(it, e) }, if (e.tab in tabs) e.tab else TabEquipo.Mas, vm::irA)
         }
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 80.dp))
 
