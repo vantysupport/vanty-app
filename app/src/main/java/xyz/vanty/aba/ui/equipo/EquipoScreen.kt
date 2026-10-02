@@ -95,7 +95,10 @@ fun EquipoScreen(app: Estado, appVm: AppViewModel) {
                 modifier = Modifier.weight(1f), label = "tabs",
             ) { tab ->
                 val pad = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)
-                when (tab) {
+                // Los apartados del equipo se abren con la pantalla real de la web (mismas funciones que vanty.xyz)
+                val web = apartadoWeb(tab, e.perfil?.role)
+                if (web != null) xyz.vanty.aba.ui.comp.PanelWeb(web.first, web.second)
+                else when (tab) {
                     TabEquipo.Hoy -> when (e.rol) {
                         Rol.Admin -> InicioAdminScreen(e, vm, pad)
                         Rol.Secretaria -> InicioSecretariaScreen(e, app, vm, pad)
@@ -175,4 +178,29 @@ private fun Cabecera(e: EstadoEquipo) {
             Text("$hechas/${activas.size}", fontWeight = FontWeight.ExtraBold, color = if (completo) T.exito else T.secundario, style = MaterialTheme.typography.titleSmall)
         }
     }
+}
+
+
+/** Panel y vista de la web para cada apartado (los mismos ids que usa ?vista= en vanty.xyz). null = pantalla nativa. */
+fun apartadoWeb(tab: TabEquipo, rol: String?): Pair<String, String>? {
+    val panel = when (rol) { "jefe", "admin", "terapeuta" -> "admin"; "secretaria" -> "secretaria"; else -> "especialista" }
+    val vista = when (panel) {
+        "admin" -> when (tab) {
+            TabEquipo.Agenda -> "agenda"; TabEquipo.Pacientes -> "ninos"; TabEquipo.Inteligencia -> "inteligencia"
+            TabEquipo.Cobros -> "pagos"; TabEquipo.Reportes -> "reportes-financieros"; TabEquipo.Recursos -> "recursos-adicionales"
+            TabEquipo.Chat -> "chat-especialistas"; TabEquipo.Usuarios -> "usuarios"; TabEquipo.Perfil -> "config"
+            else -> null
+        }
+        "secretaria" -> when (tab) {
+            TabEquipo.Agenda -> "agenda"; TabEquipo.Cobros -> "pagos"; TabEquipo.Reportes -> "reportes-financieros"
+            TabEquipo.Recursos -> "recursos-adicionales"; TabEquipo.Perfil -> "perfil"
+            else -> null
+        }
+        else -> when (tab) {
+            TabEquipo.Agenda -> "agenda"; TabEquipo.Pacientes -> "pacientes"; TabEquipo.Inteligencia -> "prediccion"
+            TabEquipo.Chat -> "evaluaciones"; TabEquipo.Perfil -> "perfil"
+            else -> null
+        }
+    } ?: return null
+    return panel to vista
 }
