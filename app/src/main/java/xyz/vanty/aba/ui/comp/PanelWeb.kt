@@ -173,7 +173,10 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
             Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 AriaFlotando(Aria.PREOCUPADA, 120.dp)
                 Spacer(Modifier.height(12.dp))
-                Text(L("No se pudo abrir este apartado. Revisa tu conexión.", "Couldn't open this section. Check your connection."),
+                Text(
+                    if (motivo == "token" || motivo == "login" || motivo == "sin_sesion")
+                        L("Tu sesión en este teléfono se cerró. Ve a Más → Cerrar sesión y vuelve a entrar.", "Your session on this phone ended. Go to More → Sign out and sign in again.")
+                    else L("No se pudo abrir este apartado. Revisa tu conexión.", "Couldn't open this section. Check your connection."),
                     style = MaterialTheme.typography.bodyMedium, color = T.secundario, textAlign = TextAlign.Center)
                 Text(motivo, style = MaterialTheme.typography.labelSmall, color = T.terciario)
                 Spacer(Modifier.height(12.dp))
