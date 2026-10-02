@@ -1,23 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Notificación pintada (vista compacta): fondo de color completo, título con emoji y ARIA a la derecha. -->
+<!-- Notificación de ARIA (compacta): tarjeta celeste, título en azul marino y ARIA a la derecha. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/raiz"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:minHeight="64dp"
+    android:layout_height="64dp"
     android:background="@drawable/notif_azul"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="16dp"
-    android:paddingEnd="8dp">
+    android:paddingEnd="6dp">
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp">
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/titulo"
@@ -25,26 +22,26 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
+            android:textColor="#0B1B33"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/texto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="1dp"
             android:ellipsize="end"
-            android:maxLines="2"
-            android:textColor="#F2FFFFFF"
+            android:maxLines="1"
+            android:textColor="#33507A"
             android:textSize="13sp" />
     </LinearLayout>
 
     <ImageView
         android:id="@+id/aria"
-        android:layout_width="52dp"
-        android:layout_height="60dp"
-        android:layout_marginStart="8dp"
+        android:layout_width="60dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="6dp"
         android:contentDescription="ARIA"
-        android:scaleType="fitCenter" />
+        android:scaleType="fitEnd" />
 </LinearLayout>

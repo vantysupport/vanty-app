@@ -33,9 +33,10 @@ object Avisos {
 
     /** Poses de ARIA con fondo transparente (las de /public/aria de la web). */
     enum class Pose(@DrawableRes val img: Int) {
-        SALUDO(R.drawable.aria_saluda), CELEBRA(R.drawable.aria_festeja), PENSANDO(R.drawable.aria_pensando),
-        FELIZ(R.drawable.aria_contenta), GUINO(R.drawable.aria_bienvenida), CORRE(R.drawable.aria_corre),
-        LAPTOP(R.drawable.aria_laptop), NEUTRAL(R.drawable.aria_atenta),
+        // Como la guía "ARIA adaptada para Vanty ABA": saluda, motiva, celebra, piensa, recuerda, acompaña, logro, descanso
+        SALUDO(R.drawable.aria_saluda), CELEBRA(R.drawable.aria_festeja), PENSANDO(R.drawable.aria_preocupada),
+        FELIZ(R.drawable.aria_contenta), GUINO(R.drawable.aria_pulgar_arriba), CORRE(R.drawable.aria_corre),
+        LAPTOP(R.drawable.aria_laptop_sentada), NEUTRAL(R.drawable.aria_atenta),
     }
 
     /** Color de fondo de cada tipo de aviso (y el del texto del botón blanco). */
@@ -79,23 +80,22 @@ object Avisos {
     ) {
         if (!permitidas(ctx)) return
         val toque = abrir(ctx, vista, id)
+        // Título sin emoji al inicio (como la guía de notificaciones de Vanty): la expresión la pone ARIA
+        val limpio = titulo.replace(Regex("^[^\\p{L}\\p{N}¡¿]+"), "").ifBlank { titulo }
         fun vista(layout: Int) = RemoteViews(ctx.packageName, layout).apply {
             setInt(R.id.raiz, "setBackgroundResource", tema.fondo)
-            setTextViewText(R.id.titulo, titulo)
+            setTextViewText(R.id.titulo, limpio)
             setTextViewText(R.id.texto, texto)
             setImageViewResource(R.id.aria, pose.img)
         }
         val chica = vista(R.layout.notif_aria)
-        val grande = vista(R.layout.notif_aria_grande).apply {
-            setTextViewText(R.id.boton, accion ?: L("Abrir", "Open"))
-            setTextColor(R.id.boton, tema.boton)
-            setOnClickPendingIntent(R.id.boton, toque)
-        }
+        val grande = vista(R.layout.notif_aria_grande)
         val b = NotificationCompat.Builder(ctx, canal)
             .setSmallIcon(R.drawable.ic_stat_vanty)
             .setColor(ContextCompat.getColor(ctx, R.color.vanty_blue))
-            .setContentTitle(titulo) // para lectores de pantalla, relojes y la vista de "notificaciones recientes"
+            .setContentTitle(limpio) // para lectores de pantalla, relojes y la vista de "notificaciones recientes"
             .setContentText(texto)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(chica)
             .setCustomBigContentView(grande)
             .setCustomHeadsUpContentView(chica)
