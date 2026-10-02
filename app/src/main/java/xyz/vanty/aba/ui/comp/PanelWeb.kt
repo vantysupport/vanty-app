@@ -71,8 +71,10 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
     var listo by remember(panel, vista) { mutableStateOf(false) }
     var cargando by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
+    var motivo by remember { mutableStateOf("") }
     var web by remember { mutableStateOf<WebView?>(null) }
     var reintentos by remember(panel, vista) { mutableStateOf(0) }
+    var reintentar by remember { mutableStateOf(0) }
     val destino = "${BuildConfig.API_BASE_URL}/${Backend.idioma}/$panel?vista=$vista&embebido=1"
 
     // Selector de archivos de la web (<input type="file">)
@@ -90,11 +92,13 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
     }
 
     // La sesión de la web venció: se renueva y se vuelve a abrir (máximo 2 veces seguidas)
-    fun volverAEntrar() { if (reintentos < 2) reintentos++ else error = true }
+    fun volverAEntrar() { if (reintentos < 2) reintentos++ else { motivo = "login"; error = true } }
 
-    LaunchedEffect(panel, vista, reintentos) {
+    LaunchedEffect(panel, vista, reintentos, reintentar) {
         listo = false
-        error = !pasarSesion()
+        val r = pasarSesion()
+        error = r != null
+        if (r != null) motivo = r
         listo = true
     }
 
@@ -126,6 +130,9 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                             // Navegación interna de la web (router) hacia el login
                             override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
                                 if (url?.contains("/login") == true) volverAEntrar()
+                            }
+                            override fun onReceivedError(view: WebView, req: WebResourceRequest, err: android.webkit.WebResourceError) {
+                                if (req.isForMainFrame) { motivo = "red ${err.errorCode}"; error = true }
                             }
                             override fun onPageFinished(view: WebView, url: String?) {
                                 cargando = false
@@ -162,8 +169,9 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                 Spacer(Modifier.height(12.dp))
                 Text(L("No se pudo abrir este apartado. Revisa tu conexión.", "Couldn't open this section. Check your connection."),
                     style = MaterialTheme.typography.bodyMedium, color = T.secundario, textAlign = TextAlign.Center)
+                Text(motivo, style = MaterialTheme.typography.labelSmall, color = T.terciario)
                 Spacer(Modifier.height(12.dp))
-                BotonGrande(L("REINTENTAR", "RETRY"), { reintentos++ })
+                BotonGrande(L("REINTENTAR", "RETRY"), { error = false; reintentos = 0; reintentar++ })
             }
         }
         if (!listo || cargando) {
@@ -175,10 +183,10 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
 }
 
 /** Pone en el WebView la sesión actual como la cookie que lee la web (@supabase/ssr). */
-private suspend fun pasarSesion(): Boolean = runCatching {
+private suspend fun pasarSesion(): String? = runCatching<String?> {
     val auth = Backend.supabase.auth
     runCatching { auth.refreshCurrentSession() }
-    val s = auth.currentSessionOrNull() ?: return false
+    val s = auth.currentSessionOrNull() ?: return "sin_sesion"
     val u = s.user
     val json = buildJsonObject {
         put("access_token", s.accessToken)
@@ -195,16 +203,20 @@ private suspend fun pasarSesion(): Boolean = runCatching {
     val ref = Uri.parse(BuildConfig.SUPABASE_URL).host.orEmpty().substringBefore('.')
     val nombre = "sb-$ref-auth-token"
     val sitio = BuildConfig.API_BASE_URL
+    // Dominio base (sirve para vanty.xyz y www.vanty.xyz)
+    val dominio = Uri.parse(sitio).host.orEmpty().removePrefix("www.")
     val cm = CookieManager.getInstance()
-    val attrs = "; Path=/; Secure; SameSite=Lax; Max-Age=86400"
+    val attrs = "; Domain=$dominio; Path=/; Secure; SameSite=Lax; Max-Age=86400"
     // Limpiar restos (cookie entera o en trozos) y escribir la nueva; @supabase/ssr parte en trozos de 3180
-    (listOf(nombre) + (0..5).map { "$nombre.$it" }).forEach { cm.setCookie(sitio, "$it=; Path=/; Max-Age=0") }
+    (listOf(nombre) + (0..5).map { "$nombre.$it" }).forEach {
+        cm.setCookie(sitio, "$it=; Path=/; Max-Age=0"); cm.setCookie(sitio, "$it=; Domain=$dominio; Path=/; Max-Age=0")
+    }
     if (valor.length <= 3180) cm.setCookie(sitio, "$nombre=$valor$attrs")
     else valor.chunked(3180).forEachIndexed { i, parte -> cm.setCookie(sitio, "$nombre.$i=$parte$attrs") }
-    cm.setCookie(sitio, "vanty_locale=${Backend.idioma}; Path=/; Max-Age=31536000")
+    cm.setCookie(sitio, "vanty_locale=${Backend.idioma}; Domain=$dominio; Path=/; Max-Age=31536000")
     cm.flush()
-    true
-}.getOrDefault(false)
+    null
+}.getOrElse { "error: ${it.javaClass.simpleName} ${it.message?.take(80).orEmpty()}" }
 
 /** Recibe los archivos que la web genera en el navegador (informes Word/PDF, Excel, recibos) y los abre. */
 private class Puente(private val ctx: Context) {
