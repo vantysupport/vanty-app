@@ -85,6 +85,9 @@ data class Colega(
 )
 
 /** Conversación de una familia con el centro (resumen para el equipo). */
+@Serializable
+data class NinoRef(val id: String, val name: String? = null)
+
 data class HiloFamilia(val childId: String, val paciente: String, val ultimo: String, val fecha: String?, val sinLeer: Int)
 
 /** Los tres chats de la web: ARIA (IA), familia ↔ centro y chat interno del equipo. Mismas rutas que la web. */
@@ -127,18 +130,36 @@ object RepoChat {
     }
 
     /** Para el equipo: conversaciones con familias, una por paciente, con mensajes sin leer. */
-    suspend fun hilosFamilias(yo: String): List<HiloFamilia> =
-        Backend.getOrNull<ListaCentro>("/api/chat-familias?resumen=1")?.data.orEmpty()
+    /** Como la web: conversaciones con mensajes primero (no leídos arriba) y luego todas las familias activas. */
+    suspend fun hilosFamilias(yo: String): List<HiloFamilia> {
+        val conMensajes = Backend.getOrNull<ListaCentro>("/api/chat-familias?resumen=1")?.data.orEmpty()
             .filter { it.childId != null }
             .groupBy { it.childId!! }
             .map { (id, filas) ->
                 val ultimo = filas.first()
                 HiloFamilia(
-                    id, ultimo.children?.name ?: "—", ultimo.content.orEmpty(), ultimo.fecha,
+                    id, ultimo.children?.name ?: "—", vistaPrevia(ultimo), ultimo.fecha,
                     filas.count { it.autorRol == "padre" && yo !in it.leidoPor.orEmpty() },
                 )
             }
-            .sortedByDescending { it.fecha }
+        val ids = conMensajes.map { it.childId }.toSet()
+        val resto = runCatching {
+            sb.from("children").select(Columns.list("id", "name")) {
+                filter { eq("is_active", true) }
+                order("name", Order.ASCENDING)
+            }.decodeList<NinoRef>()
+        }.getOrDefault(emptyList())
+            .filter { it.id !in ids }
+            .map { HiloFamilia(it.id, it.name ?: "—", "", null, 0) }
+        return conMensajes.sortedWith(compareByDescending<HiloFamilia> { it.sinLeer }.thenByDescending { it.fecha.orEmpty() }) + resto
+    }
+
+    private fun vistaPrevia(f: FilaCentro): String = when {
+        f.tipo == "image" -> "📷 Imagen"
+        f.tipo == "audio" || f.content.orEmpty().startsWith("🎤 [Audio] http") -> "🎤 Audio"
+        f.tipo == "document" || Regex("^📎 \\[.+?\\] https?://").containsMatchIn(f.content.orEmpty()) -> "📎 Documento"
+        else -> f.content.orEmpty()
+    }
 
     // ── Chat del equipo (texto cifrado en el servidor: siempre por /api/chat-equipo) ─────
     suspend fun colegas(yo: String): List<Colega> =

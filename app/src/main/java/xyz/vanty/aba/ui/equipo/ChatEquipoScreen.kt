@@ -78,6 +78,7 @@ fun ChatEquipoScreen(e: EstadoEquipo, app: Estado, pad: PaddingValues) {
     var familias by remember { mutableStateOf<List<HiloFamilia>?>(null) }
     var colegas by remember { mutableStateOf<List<Colega>?>(null) }
     var resumen by remember { mutableStateOf<Map<String, ResumenContacto>>(emptyMap()) }
+    var buscar by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -123,13 +124,23 @@ fun ChatEquipoScreen(e: EstadoEquipo, app: Estado, pad: PaddingValues) {
                     }
             }
         }
+        item {
+            androidx.compose.material3.OutlinedTextField(
+                buscar, { buscar = it }, singleLine = true, shape = RoundedCornerShape(18.dp),
+                placeholder = { Text(if (seccion == 0 || !conEquipo) L("Buscar familia", "Search family") else L("Buscar en el equipo", "Search team")) },
+                leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         if (seccion == 0 || !conEquipo) {
             if (familias?.isEmpty() == true) item { Tarjeta { Vacio(Aria.SENTADA, L("Sin conversaciones", "No conversations"), L("Cuando una familia escriba, la verás aquí.", "When a family writes, you'll see it here.")) } }
-            itemsIndexed(familias.orEmpty(), key = { _, h -> "f" + h.childId }) { i, h ->
-                FilaHilo(h.paciente, L("Familia", "Family") + " · " + h.ultimo, h.fecha, h.sinLeer, Modifier.aparecer(i)) { abierto = Hilo.Familia(h) }
+            val filtradas = familias.orEmpty().filter { buscar.isBlank() || it.paciente.contains(buscar.trim(), ignoreCase = true) }
+            itemsIndexed(filtradas, key = { _, h -> "f" + h.childId }) { i, h ->
+                FilaHilo(h.paciente, L("Familia", "Family") + " · " + h.ultimo.ifBlank { L("Toca para escribir", "Tap to write") }, h.fecha, h.sinLeer, Modifier.aparecer(i.coerceAtMost(12))) { abierto = Hilo.Familia(h) }
             }
         } else {
-            val ordenados = colegas.orEmpty().sortedByDescending { resumen[it.id]?.last?.fecha ?: "" }
+            val ordenados = colegas.orEmpty().filter { buscar.isBlank() || (it.nombre ?: "").contains(buscar.trim(), ignoreCase = true) }
+                .sortedByDescending { resumen[it.id]?.last?.fecha ?: "" }
             itemsIndexed(ordenados, key = { _, c -> "e" + c.id }) { i, c ->
                 val r = resumen[c.id]
                 FilaHilo(c.nombre ?: "—", r?.last?.content ?: (c.specialty ?: L("Toca para escribir", "Tap to write")), r?.last?.fecha, r?.unread ?: 0, Modifier.aparecer(i)) { abierto = Hilo.Equipo(c) }
