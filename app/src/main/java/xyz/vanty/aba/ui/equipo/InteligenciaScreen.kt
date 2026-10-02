@@ -60,6 +60,7 @@ import xyz.vanty.aba.ui.comp.AriaFlotando
 import xyz.vanty.aba.ui.comp.CabeceraSub
 import xyz.vanty.aba.ui.comp.Pintura
 import xyz.vanty.aba.ui.comp.Tarjeta
+import xyz.vanty.aba.ui.comp.Etiqueta
 import xyz.vanty.aba.ui.comp.aparecer
 import xyz.vanty.aba.ui.comp.presionable
 import xyz.vanty.aba.ui.theme.T
@@ -76,7 +77,7 @@ fun InteligenciaScreen(e: EstadoEquipo, app: Estado, vm: EquipoViewModel, pad: P
     val alcance = rememberCoroutineScope()
     var paciente by remember { mutableStateOf<Paciente?>(null) }
     var cargando by remember { mutableStateOf<String?>(null) }
-    var resultado by remember { mutableStateOf<Pair<String, JsonObject>?>(null) }
+    var resultado by remember { mutableStateOf<Triple<String, String, JsonObject>?>(null) }
     val analisis = listOfNotNull(
         Analisis("pred", "/api/agente-prediccion", L("Predicción", "Prediction"), L("Avance a 30 días", "30-day outlook"), Icons.Rounded.Insights, Pintura.azul, mapOf("semanas" to "12"))
             .takeIf { app.on("intel_predicciones") },
@@ -95,7 +96,7 @@ fun InteligenciaScreen(e: EstadoEquipo, app: Estado, vm: EquipoViewModel, pad: P
                     put("childId", p.id); put("childName", p.nombre); put("locale", Backend.idioma)
                     a.extra.forEach { (k, v) -> v.toIntOrNull()?.let { put(k, it) } ?: put(k, v) }
                 })
-                if (r.status.isSuccess()) resultado = a.titulo to r.body<JsonObject>()
+                if (r.status.isSuccess()) resultado = Triple(a.clave, a.titulo, r.body<JsonObject>())
                 else when (val err = r.errorApi()) {
                     is ErrorApi.SinIA -> vm.aviso(L("La IA no está activada en el centro.", "AI isn't enabled for the center."))
                     is ErrorApi.Otro -> vm.aviso(if (err.codigo == 402) L("El centro ya usó los análisis de IA de este período.", "The center has used this period's AI analyses.") else err.texto ?: L("No se pudo analizar.", "Couldn't analyze."))
@@ -146,10 +147,15 @@ fun InteligenciaScreen(e: EstadoEquipo, app: Estado, vm: EquipoViewModel, pad: P
                 }
             }
             resultado != null -> item {
-                Tarjeta(Modifier.aparecer(0)) {
-                    Text(resultado!!.first, style = MaterialTheme.typography.titleLarge, color = T.texto)
-                    Spacer(Modifier.height(8.dp))
-                    VistaJson(resultado!!.second, 0)
+                val (clave, titulo, j) = resultado!!
+                Column(Modifier.aparecer(0), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(titulo + " · " + (paciente?.nombre ?: ""), style = MaterialTheme.typography.titleLarge, color = T.texto)
+                    when (clave) {
+                        "pred" -> VistaPrediccion(j)
+                        "pat" -> VistaPatrones(j)
+                        "obj" -> VistaObjetivos(j)
+                        else -> Tarjeta { VistaJson(j, 0) }
+                    }
                 }
             }
             paciente == null -> item {
@@ -191,5 +197,124 @@ private fun VistaJson(el: JsonElement, nivel: Int) {
                 }
             }
         }
+    }
+}
+
+
+// ── Resultados con el mismo formato que InteligenciaHubView de la web ─────────────────────────
+private fun JsonObject.txt(k: String) = (this[k] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() && it != "null" }
+private fun JsonObject.num(k: String) = (this[k] as? JsonPrimitive)?.content?.toDoubleOrNull()
+private fun JsonObject.lista(k: String) = (this[k] as? JsonArray)?.mapNotNull { it as? JsonObject }.orEmpty()
+
+@Composable
+private fun Barra(pct: Double, criterio: Double?, color: Color) {
+    Box(Modifier.fillMaxWidth().height(8.dp).background(T.relleno, CircleShape)) {
+        Box(Modifier.fillMaxWidth((pct / 100.0).coerceIn(0.0, 1.0).toFloat()).height(8.dp).background(color, CircleShape))
+    }
+    criterio?.let { Text(L("Criterio ${it.toInt()}%", "Criterion ${it.toInt()}%"), style = MaterialTheme.typography.labelSmall, color = T.terciario, modifier = Modifier.padding(top = 2.dp)) }
+}
+
+@Composable
+private fun VistaPrediccion(j: JsonObject) {
+    j.txt("resumen_general")?.let { r ->
+        Tarjeta {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AriaFlotando(Aria.EXPLICA, 54.dp); Spacer(Modifier.width(8.dp))
+                Text(L("Resumen de ARIA", "ARIA's summary"), style = MaterialTheme.typography.titleMedium, color = T.texto)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(conFormato(r), style = MaterialTheme.typography.bodyMedium, color = T.texto)
+        }
+    }
+    val progs = j.lista("analisis_por_programa")
+    if (progs.isEmpty()) Tarjeta { Text(j.txt("mensaje") ?: L("No hay programas con sesiones para analizar.", "No programs with sessions to analyze."), color = T.secundario) }
+    progs.forEach { p ->
+        val logrado = (p["criterio_logrado"] as? JsonPrimitive)?.content == "true"
+        val ult = p.num("ultimo_porcentaje")
+        Tarjeta {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(p.txt("nombre") ?: "—", style = MaterialTheme.typography.titleSmall, color = T.texto, modifier = Modifier.weight(1f))
+                p.txt("estado_general")?.let { Etiqueta(it, if (logrado) T.exito.copy(alpha = 0.14f) else T.acentoSuave, if (logrado) T.exito else T.acento) }
+            }
+            p.txt("objetivo")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = T.secundario, maxLines = 3, modifier = Modifier.padding(top = 4.dp)) }
+            Spacer(Modifier.height(10.dp))
+            if (ult != null) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Dato(L("Último", "Latest"), "${ult.toInt()}%")
+                    Dato(L("Promedio", "Average"), p.num("media")?.let { "${it.toInt()}%" } ?: "—")
+                    Dato(L("Sesiones", "Sessions"), p.num("total_sesiones")?.toInt()?.toString() ?: "0")
+                    p.txt("set_activo")?.let { Dato("Set", it) }
+                }
+                Spacer(Modifier.height(8.dp))
+                Barra(ult, p.num("criterio_dominio"), if (logrado) T.exito else T.acento)
+            } else p.txt("mensaje")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = T.terciario) }
+            p.txt("tendencia_descripcion")?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = T.acento, modifier = Modifier.padding(top = 6.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun VistaPatrones(j: JsonObject) {
+    Tarjeta {
+        Text(j.txt("resumen") ?: "", style = MaterialTheme.typography.titleSmall, color = T.texto)
+        j.num("sesiones_analizadas")?.let { Text(L("${it.toInt()} sesiones analizadas", "${it.toInt()} sessions analyzed"), style = MaterialTheme.typography.bodySmall, color = T.terciario) }
+        j.txt("analisis_ia")?.let { Spacer(Modifier.height(8.dp)); Text(conFormato(it), style = MaterialTheme.typography.bodyMedium, color = T.texto) }
+    }
+    j.lista("patrones").forEach { p ->
+        val tipo = p.txt("tipo").orEmpty()
+        val (nombre, color) = when (tipo) {
+            "regresion" -> L("Regresión", "Regression") to T.peligro
+            "estancamiento" -> L("Estancamiento", "Plateau") to T.aviso
+            "aceleracion" -> L("Aceleración", "Acceleration") to T.exito
+            else -> tipo.replaceFirstChar { it.uppercase() } to T.acento
+        }
+        Tarjeta {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Etiqueta(nombre, color.copy(alpha = 0.14f), color)
+                Spacer(Modifier.width(8.dp))
+                Text(p.txt("area") ?: "", style = MaterialTheme.typography.titleSmall, color = T.texto, modifier = Modifier.weight(1f), maxLines = 1)
+                p.num("confianza")?.let { Text(L("${it.toInt()}% confianza", "${it.toInt()}% confidence"), style = MaterialTheme.typography.labelSmall, color = T.terciario) }
+            }
+            p.txt("descripcion")?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = T.texto, modifier = Modifier.padding(top = 8.dp)) }
+            val antes = p.num("valor_anterior"); val ahora = p.num("valor_actual")
+            if (antes != null && ahora != null) Text(L("Antes ${antes.toInt()}% → ahora ${ahora.toInt()}%", "Before ${antes.toInt()}% → now ${ahora.toInt()}%"),
+                style = MaterialTheme.typography.labelMedium, color = color, modifier = Modifier.padding(top = 6.dp))
+            p.txt("accion_sugerida")?.let {
+                Box(Modifier.fillMaxWidth().padding(top = 8.dp).background(T.acentoSuave, RoundedCornerShape(12.dp)).padding(10.dp)) {
+                    Text("💡 " + it, style = MaterialTheme.typography.bodySmall, color = T.texto)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VistaObjetivos(j: JsonObject) {
+    val res = j["resultado"] as? JsonObject
+    val sugeridos = res?.lista("objetivos_sugeridos").orEmpty()
+    if (sugeridos.isEmpty()) {
+        Tarjeta { Text(conFormato(res?.txt("texto_libre") ?: L("ARIA no sugirió objetivos nuevos.", "ARIA did not suggest new goals.")), color = T.texto) }
+        return
+    }
+    sugeridos.forEach { o ->
+        Tarjeta {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(o.txt("titulo") ?: "—", style = MaterialTheme.typography.titleSmall, color = T.texto, modifier = Modifier.weight(1f))
+                o.txt("prioridad")?.let { Etiqueta(it.replaceFirstChar { c -> c.uppercase() }, T.acentoSuave, T.acento) }
+            }
+            o.txt("area")?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = T.acento, modifier = Modifier.padding(top = 2.dp)) }
+            o.txt("descripcion")?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = T.texto, modifier = Modifier.padding(top = 6.dp)) }
+            o.txt("criterio_dominio")?.let { Dato(L("Criterio de dominio", "Mastery criterion"), it) }
+            o.txt("metodologia")?.let { Dato(L("Metodología", "Method"), it) }
+            o.txt("justificacion_clinica")?.let { Dato(L("Justificación clínica", "Clinical rationale"), it) }
+        }
+    }
+}
+
+@Composable
+private fun Dato(titulo: String, valor: String) {
+    Column(Modifier.padding(top = 4.dp)) {
+        Text(titulo, style = MaterialTheme.typography.labelSmall, color = T.terciario)
+        Text(valor, style = MaterialTheme.typography.bodyMedium, color = T.texto)
     }
 }
