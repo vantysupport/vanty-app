@@ -20,6 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
+import io.github.jan.supabase.postgrest.from
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
@@ -117,11 +119,15 @@ fun PacientesScreen(e: EstadoEquipo, vm: EquipoViewModel, pad: PaddingValues) {
     ficha?.let { FichaPaciente(it, vm) { ficha = null } }
 }
 
+/** Ficha del paciente con pestañas como la web: ABA (programas, gráfica y sesiones), Info, Informes y Documentos. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FichaPaciente(p: Paciente, vm: EquipoViewModel, onCerrar: () -> Unit) {
-    var programas by remember { mutableStateOf<List<Programa>?>(null) }
-    LaunchedEffect(p.id) { programas = runCatching { vm.programasDe(p.id) }.getOrDefault(emptyList()) }
+    var programas by remember { mutableStateOf<List<ProgramaAba>?>(null) }
+    var recargar by remember { mutableStateOf(0) }
+    var pestana by rememberSaveable { mutableStateOf("aba") }
+    var registrar by remember { mutableStateOf<ProgramaAba?>(null) }
+    LaunchedEffect(p.id, recargar) { programas = runCatching { RepoAba.programas(p.id) }.getOrDefault(emptyList()) }
     ModalBottomSheet(onCerrar, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = T.fondo) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -133,36 +139,118 @@ private fun FichaPaciente(p: Paciente, vm: EquipoViewModel, onCerrar: () -> Unit
                         style = MaterialTheme.typography.bodyMedium, color = T.secundario)
                 }
             }
-            Spacer(Modifier.height(18.dp))
-            Text(L("Programas ABA", "ABA programs"), style = MaterialTheme.typography.titleMedium, color = T.texto)
-            Spacer(Modifier.height(8.dp))
-            when {
-                programas == null -> LinearProgressIndicator(Modifier.fillMaxWidth().clip(CircleShape), color = T.acento, trackColor = T.relleno)
-                programas!!.isEmpty() -> Text(L("Sin programas asignados.", "No programs assigned."), color = T.secundario, style = MaterialTheme.typography.bodyMedium)
-                else -> programas!!.forEach { pr ->
-                    val total = pr.objetivos.size
-                    val dominados = pr.objetivos.count { it.estado == "dominado" }
-                    Tarjeta(Modifier.padding(bottom = 10.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(if (pr.dominado) Icons.Rounded.Star else Icons.Rounded.TrackChanges, null, tint = if (pr.dominado) T.aviso else T.acento)
-                            Spacer(Modifier.width(10.dp))
-                            Text(pr.titulo ?: "—", style = MaterialTheme.typography.titleSmall, color = T.texto, modifier = Modifier.weight(1f))
-                            pr.area?.let { Etiqueta(it, T.acentoSuave, T.acento) }
-                        }
-                        if (total > 0) {
-                            Spacer(Modifier.height(10.dp))
-                            LinearProgressIndicator(
-                                progress = { dominados / total.toFloat() }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                                color = T.exito, trackColor = T.relleno, drawStopIndicator = {},
-                            )
-                            Text(L("$dominados de $total objetivos dominados", "$dominados of $total goals mastered"), style = MaterialTheme.typography.bodySmall, color = T.terciario, modifier = Modifier.padding(top = 4.dp))
-                        }
-                    }
+            Spacer(Modifier.height(14.dp))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("aba" to L("ABA", "ABA"), "info" to L("Info", "Info"), "informes" to L("Informes", "Reports"), "docs" to L("Documentos", "Documents")).forEach { (k, t) ->
+                    Text(
+                        t, style = MaterialTheme.typography.labelLarge, color = if (pestana == k) Color.White else T.texto,
+                        modifier = Modifier.presionable { pestana = k }.background(if (pestana == k) T.acento else T.tarjeta, CircleShape).padding(horizontal = 16.dp, vertical = 9.dp),
+                    )
                 }
             }
-            ListaInformes(p.id)
-            ListaDocumentos(p.id)
+            Spacer(Modifier.height(14.dp))
+            when (pestana) {
+                "aba" -> {
+                    val lista = programas
+                    val activos = lista.orEmpty().count { !it.criterioAlcanzado }
+                    val logrados = lista.orEmpty().size - activos
+                    if (lista != null) {
+                        Text(L("$activos en curso · $logrados con criterio alcanzado", "$activos in progress · $logrados criterion met"),
+                            style = MaterialTheme.typography.bodySmall, color = T.secundario)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    when {
+                        lista == null -> LinearProgressIndicator(Modifier.fillMaxWidth().clip(CircleShape), color = T.acento, trackColor = T.relleno)
+                        lista.isEmpty() -> Text(L("Sin programas asignados.", "No programs assigned."), color = T.secundario, style = MaterialTheme.typography.bodyMedium)
+                        else -> lista.forEach { pr -> TarjetaProgramaAba(pr) { registrar = pr } }
+                    }
+                }
+                "info" -> InfoPaciente(p)
+                "informes" -> ListaInformes(p.id)
+                "docs" -> ListaDocumentos(p.id)
+            }
         }
+    }
+    registrar?.let { pr ->
+        HojaRegistrarSesion(pr, p.id, { registrar = null }) {
+            registrar = null; recargar++
+            vm.aviso(L("Sesión registrada", "Session logged"))
+        }
+    }
+}
+
+@kotlinx.serialization.Serializable
+private data class FichaInfo(
+    val name: String? = null,
+    val apodo: String? = null,
+    @kotlinx.serialization.SerialName("birth_date") val nacimiento: String? = null,
+    val diagnosis: String? = null,
+    @kotlinx.serialization.Serializable(with = xyz.vanty.aba.data.TextoFlexible::class) val notas: String? = null,
+    @kotlinx.serialization.Serializable(with = xyz.vanty.aba.data.TextoFlexible::class) val notes: String? = null,
+    @kotlinx.serialization.SerialName("parent_id") val padreId: String? = null,
+    @kotlinx.serialization.SerialName("created_at") val creado: String? = null,
+)
+
+@kotlinx.serialization.Serializable
+private data class PadreInfo(
+    @kotlinx.serialization.SerialName("full_name") val nombre: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+)
+
+/** Datos del paciente y de su familia (pestaña Info de la web). */
+@Composable
+private fun InfoPaciente(p: Paciente) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var info by remember { mutableStateOf<FichaInfo?>(null) }
+    var padre by remember { mutableStateOf<PadreInfo?>(null) }
+    LaunchedEffect(p.id) {
+        runCatching {
+            val sb = xyz.vanty.aba.data.Backend.supabase
+            val f = sb.from("children").select(io.github.jan.supabase.postgrest.query.Columns.list("name", "apodo", "birth_date", "diagnosis", "notas", "notes", "parent_id", "created_at")) {
+                filter { eq("id", p.id) }
+            }.decodeSingleOrNull<FichaInfo>()
+            info = f
+            f?.padreId?.let { id ->
+                padre = sb.from("profiles").select(io.github.jan.supabase.postgrest.query.Columns.list("full_name", "email", "phone")) { filter { eq("id", id) } }.decodeSingleOrNull<PadreInfo>()
+            }
+        }
+    }
+    val i = info
+    Tarjeta {
+        Dato(L("Nombre", "Name"), i?.name ?: p.nombre)
+        i?.apodo?.takeIf { it.isNotBlank() }?.let { Dato(L("Apodo", "Nickname"), it) }
+        Dato(L("Fecha de nacimiento", "Date of birth"), (i?.nacimiento ?: p.nacimiento)?.take(10) ?: "—")
+        Dato(L("Diagnóstico", "Diagnosis"), i?.diagnosis ?: p.diagnosis ?: "—")
+        (i?.notas ?: i?.notes)?.takeIf { it.isNotBlank() }?.let { Dato(L("Notas", "Notes"), it) }
+        i?.creado?.let { Dato(L("En el centro desde", "At the center since"), it.take(10)) }
+    }
+    padre?.let { pa ->
+        Spacer(Modifier.height(12.dp))
+        Tarjeta {
+            Text(L("Familia", "Family"), style = MaterialTheme.typography.titleMedium, color = T.texto)
+            Dato(L("Nombre", "Name"), pa.nombre ?: "—")
+            pa.email?.let { Dato(L("Correo", "Email"), it) }
+            pa.phone?.let { Dato(L("Teléfono", "Phone"), it) }
+            val tel = pa.phone?.filter { it.isDigit() }.orEmpty()
+            if (tel.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    L("Escribir por WhatsApp", "Message on WhatsApp"), style = MaterialTheme.typography.labelLarge, color = T.acento,
+                    modifier = Modifier.presionable {
+                        runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://wa.me/$tel")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }.background(T.acentoSuave, CircleShape).padding(horizontal = 14.dp, vertical = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Dato(titulo: String, valor: String) {
+    Column(Modifier.padding(top = 8.dp)) {
+        Text(titulo, style = MaterialTheme.typography.labelSmall, color = T.terciario)
+        Text(valor, style = MaterialTheme.typography.bodyMedium, color = T.texto)
     }
 }
 
