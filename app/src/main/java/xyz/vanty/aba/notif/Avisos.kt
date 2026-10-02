@@ -33,9 +33,9 @@ object Avisos {
 
     /** Poses de ARIA con fondo transparente (las de /public/aria de la web). */
     enum class Pose(@DrawableRes val img: Int) {
-        SALUDO(R.drawable.aria_pose_1), CELEBRA(R.drawable.aria_pose_7), PENSANDO(R.drawable.aria_pose_4),
-        FELIZ(R.drawable.aria_pose_5), GUINO(R.drawable.aria_pose_2), CORRE(R.drawable.aria_pose_10),
-        LAPTOP(R.drawable.aria_pose_8), NEUTRAL(R.drawable.aria_pose_6),
+        SALUDO(R.drawable.aria_saluda), CELEBRA(R.drawable.aria_festeja), PENSANDO(R.drawable.aria_pensando),
+        FELIZ(R.drawable.aria_contenta), GUINO(R.drawable.aria_bienvenida), CORRE(R.drawable.aria_corre),
+        LAPTOP(R.drawable.aria_laptop), NEUTRAL(R.drawable.aria_atenta),
     }
 
     /** Color de fondo de cada tipo de aviso (y el del texto del botón blanco). */

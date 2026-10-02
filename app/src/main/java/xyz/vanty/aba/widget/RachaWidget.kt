@@ -60,7 +60,7 @@ class RachaWidget : GlanceAppWidget() {
     private fun animo(p: Prefs): Animo {
         val rol = Rol.de(p.rol)
         val nombre = p.nombreUsuario
-        if (p.usuarioId == null) return Animo(R.drawable.widget_animo_azul, R.drawable.aria_pose_1,
+        if (p.usuarioId == null) return Animo(R.drawable.widget_animo_azul, R.drawable.aria_saluda,
             L("¡Hola! Soy ARIA", "Hi! I'm ARIA"), L("Inicia sesión en Vanty", "Sign in to Vanty"), null)
 
         if (rol == Rol.Familia) {
@@ -68,16 +68,16 @@ class RachaWidget : GlanceAppWidget() {
             val hijo = p.nombreHijo.substringBefore(' ')
             val noche = LocalTime.now().hour >= 18
             return when {
-                r.hoy -> Animo(R.drawable.widget_animo_verde, R.drawable.aria_pose_7,
+                r.hoy -> Animo(R.drawable.widget_animo_verde, R.drawable.aria_festeja,
                     L("¡Racha de ${r.dias} ${if (r.dias == 1) "día" else "días"}!", "${r.dias}-day streak!"),
                     L("¡Hoy ya practicaron! ARIA está feliz 💚", "You practiced today! ARIA is happy 💚"), "🔥 ${r.dias}")
-                r.dias > 0 && noche -> Animo(R.drawable.widget_animo_naranja, R.drawable.aria_pose_4,
+                r.dias > 0 && noche -> Animo(R.drawable.widget_animo_naranja, R.drawable.aria_preocupada,
                     L("¡No me dejes! 😟", "Don't leave me! 😟"),
                     L("Tu racha de ${r.dias} ${if (r.dias == 1) "día" else "días"} se apaga a medianoche", "Your ${r.dias}-day streak ends at midnight"), "🔥 ${r.dias}")
-                r.dias > 0 -> Animo(R.drawable.widget_animo_azul, R.drawable.aria_pose_1,
+                r.dias > 0 -> Animo(R.drawable.widget_animo_azul, R.drawable.aria_saluda,
                     L("¡A practicar hoy!", "Let's practice today!"),
                     if (hijo.isNotBlank()) L("5 minutos con $hijo y suman un día más", "5 minutes with $hijo adds one more day") else L("Suma un día más a tu racha", "Add one more day"), "🔥 ${r.dias}")
-                else -> Animo(R.drawable.widget_animo_noche, R.drawable.aria_pose_6,
+                else -> Animo(R.drawable.widget_animo_noche, R.drawable.aria_atenta,
                     if (nombre.isNotBlank()) L("¡Vuelve con ARIA, $nombre!", "Come back to ARIA, $nombre!") else L("¡Vuelve con ARIA!", "Come back to ARIA!"),
                     L("Empieza una nueva racha hoy 🌱", "Start a new streak today 🌱"), null)
             }
@@ -87,13 +87,13 @@ class RachaWidget : GlanceAppWidget() {
         val total = a?.total ?: 0
         val hechas = a?.hechas ?: 0
         return when {
-            total == 0 -> Animo(R.drawable.widget_animo_morado, R.drawable.aria_pose_5,
+            total == 0 -> Animo(R.drawable.widget_animo_morado, R.drawable.aria_contenta,
                 L("Día libre ☕", "Free day ☕"), L("No hay sesiones agendadas hoy", "No sessions scheduled today"), null)
-            hechas >= total -> Animo(R.drawable.widget_animo_verde, R.drawable.aria_pose_7,
+            hechas >= total -> Animo(R.drawable.widget_animo_verde, R.drawable.aria_festeja,
                 L("¡Día completado! 🎉", "Day complete! 🎉"), L("Registraste todas tus sesiones", "All your sessions recorded"), "✓ $hechas/$total")
-            LocalTime.now().hour >= 18 -> Animo(R.drawable.widget_animo_naranja, R.drawable.aria_pose_2,
+            LocalTime.now().hour >= 18 -> Animo(R.drawable.widget_animo_naranja, R.drawable.aria_bienvenida,
                 L("¡Ya casi! 😅", "Almost there! 😅"), L("Te faltan ${total - hechas} por registrar", "${total - hechas} left to record"), "$hechas/$total")
-            else -> Animo(R.drawable.widget_animo_azul, R.drawable.aria_pose_8,
+            else -> Animo(R.drawable.widget_animo_azul, R.drawable.aria_laptop,
                 if (nombre.isNotBlank()) L("¡Vamos, $nombre!", "Let's go, $nombre!") else L("¡Vamos con todo!", "Let's go!"),
                 L("Te quedan ${total - hechas} ${if (total - hechas == 1) "sesión" else "sesiones"} hoy", "${total - hechas} session${if (total - hechas == 1) "" else "s"} left today"), "$hechas/$total")
         }

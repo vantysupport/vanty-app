@@ -9,6 +9,6 @@
     android:minResizeWidth="110dp"
     android:minResizeHeight="110dp"
     android:resizeMode="horizontal|vertical"
-    android:previewImage="@drawable/aria_pose_1"
+    android:previewImage="@drawable/aria_saluda"
     android:updatePeriodMillis="3600000"
     android:widgetCategory="home_screen" />

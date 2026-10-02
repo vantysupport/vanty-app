@@ -78,15 +78,38 @@ import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.random.Random
 
-/** Poses de ARIA (mismas imágenes de /public/aria de la web). */
+/** Poses de ARIA (mismas imágenes de /public/aria/poses de la web). */
 object Aria {
-    @DrawableRes val SALUDO = R.drawable.aria_pose_1
-    @DrawableRes val CELEBRA = R.drawable.aria_pose_7
-    @DrawableRes val NEUTRAL = R.drawable.aria_pose_3
-    @DrawableRes val SENTADA = R.drawable.aria_pose_5
-    @DrawableRes val POSE_2 = R.drawable.aria_pose_2
-    @DrawableRes val POSE_4 = R.drawable.aria_pose_4
-    @DrawableRes val POSE_8 = R.drawable.aria_pose_8
+    @DrawableRes val SALUDO = R.drawable.aria_saluda
+    @DrawableRes val CELEBRA = R.drawable.aria_festeja
+    @DrawableRes val NEUTRAL = R.drawable.aria_de_pie
+    @DrawableRes val SENTADA = R.drawable.aria_contenta
+    @DrawableRes val POSE_2 = R.drawable.aria_bienvenida
+    @DrawableRes val POSE_4 = R.drawable.aria_pensando
+    @DrawableRes val POSE_8 = R.drawable.aria_laptop
+    @DrawableRes val HOLA = R.drawable.aria_hola
+    @DrawableRes val ATENTA = R.drawable.aria_atenta
+    @DrawableRes val PENSANDO = R.drawable.aria_pensando
+    @DrawableRes val PREOCUPADA = R.drawable.aria_preocupada
+    @DrawableRes val IDEA = R.drawable.aria_idea
+    @DrawableRes val EXPLICA = R.drawable.aria_explica
+    @DrawableRes val PULGAR = R.drawable.aria_pulgar_arriba
+    @DrawableRes val FESTEJA = R.drawable.aria_festeja
+    @DrawableRes val CELEBRA_BRAZOS = R.drawable.aria_celebra
+    @DrawableRes val SALTA = R.drawable.aria_salta
+    @DrawableRes val BRINCA = R.drawable.aria_brinca
+    @DrawableRes val CORRE = R.drawable.aria_corre
+    @DrawableRes val LAPTOP = R.drawable.aria_laptop
+    @DrawableRes val LAPTOP_SENTADA = R.drawable.aria_laptop_sentada
+    @DrawableRes val TRABAJANDO = R.drawable.aria_trabajando
+    @DrawableRes val ESTUDIA = R.drawable.aria_estudia
+    @DrawableRes val LEE = R.drawable.aria_lee
+    @DrawableRes val CELULAR = R.drawable.aria_celular
+    @DrawableRes val CAFE = R.drawable.aria_cafe
+    @DrawableRes val TE = R.drawable.aria_te
+    @DrawableRes val DESCANSA = R.drawable.aria_descansa
+    @DrawableRes val MOCHILA = R.drawable.aria_mochila
+    @DrawableRes val ESPALDA = R.drawable.aria_espalda
 }
 
 /** ARIA flotando suavemente (como el saludo animado del portal web). */
@@ -199,9 +222,9 @@ fun Contador(valor: Int, style: TextStyle, color: Color = T.texto, sufijo: Strin
 fun Llama(tamano: Dp, encendida: Boolean, modifier: Modifier = Modifier) {
     val inf = rememberInfiniteTransition(label = "llama")
     val t by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Restart), label = "t")
-    val fuera = if (encendida) Brush.verticalGradient(listOf(Color(0xFFFFB020), Color(0xFFFF7A1A), Color(0xFFFF5A1F)))
+    val fuera = if (encendida) Brush.verticalGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7), Color(0xFF0063D8)))
     else Brush.verticalGradient(listOf(Color(0xFFC9D2DE), Color(0xFFA7B3C2)))
-    val dentro = if (encendida) Brush.verticalGradient(listOf(Color(0xFFFFF3B0), Color(0xFFFFD43B)))
+    val dentro = if (encendida) Brush.verticalGradient(listOf(Color(0xFFE0F2FE), Color(0xFFBAE6FD)))
     else Brush.verticalGradient(listOf(Color(0xFFEFF3F8), Color(0xFFD5DCE6)))
     Canvas(modifier.size(tamano)) {
         val w = size.width; val h = size.height
@@ -293,7 +316,7 @@ fun <K> BarraNav(items: List<ItemBarra<K>>, actual: K, onClick: (K) -> Unit) {
 @Composable
 fun Confeti(modifier: Modifier = Modifier, monedas: Boolean = false) {
     if (monedas) { LluviaMonedas(modifier); return }
-    val colores = listOf(MarcaDesde, MarcaHasta, Color(0xFFFFC53D), Color(0xFF38BDF8), Color(0xFF93C5FD), Color.White)
+    val colores = listOf(MarcaDesde, MarcaHasta, Color(0xFF5AC8FA), Color(0xFF38BDF8), Color(0xFF93C5FD), Color.White)
     val papeles = remember { List(90) { Papel(Random.nextFloat(), 0.6f + Random.nextFloat() * 0.8f, colores.random(), Random.nextFloat() * 720f, 6f + Random.nextFloat() * 8f, Random.nextFloat() * 6f) } }
     val p = remember { Animatable(0f) }
     LaunchedEffect(Unit) { p.animateTo(1f, tween(2800, easing = LinearEasing)) }
@@ -325,8 +348,8 @@ private fun LluviaMonedas(modifier: Modifier) {
             val giro = kotlin.math.abs(sin(v * 14f + m.fase))
             val a = (1.3f - v).coerceIn(0f, 1f)
             val r = m.tam
-            drawOval(Color(0xFFE5A100).copy(alpha = a), Offset(x - r * giro, y - r), Size(2 * r * giro + 1f, 2 * r))
-            drawOval(Color(0xFFFFD43B).copy(alpha = a), Offset(x - r * 0.75f * giro, y - r * 0.75f), Size(1.5f * r * giro + 1f, 1.5f * r))
+            drawOval(Color(0xFF0369A1).copy(alpha = a), Offset(x - r * giro, y - r), Size(2 * r * giro + 1f, 2 * r))
+            drawOval(Color(0xFFBAE6FD).copy(alpha = a), Offset(x - r * 0.75f * giro, y - r * 0.75f), Size(1.5f * r * giro + 1f, 1.5f * r))
         }
     }
 }

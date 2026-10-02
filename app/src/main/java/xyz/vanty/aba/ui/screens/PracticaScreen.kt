@@ -172,7 +172,7 @@ private fun CabeceraPlan(mensaje: String?, hechas: Int, total: Int) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 LinearProgressIndicator(
                     progress = { p }, modifier = Modifier.weight(1f).height(12.dp).clip(CircleShape),
-                    color = Color(0xFFFFC53D), trackColor = Color.White.copy(alpha = 0.25f), strokeCap = StrokeCap.Round,
+                    color = Color(0xFF5AC8FA), trackColor = Color.White.copy(alpha = 0.25f), strokeCap = StrokeCap.Round,
                     drawStopIndicator = {},
                 )
                 Spacer(Modifier.width(10.dp))

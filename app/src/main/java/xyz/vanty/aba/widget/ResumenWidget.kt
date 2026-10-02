@@ -104,7 +104,7 @@ class ResumenWidget : GlanceAppWidget() {
             Column(GlanceModifier.fillMaxSize().padding(14.dp)) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(L("Tu resumen", "Your summary"), style = TextStyle(color = blanco, fontSize = 15.sp, fontWeight = FontWeight.Bold), modifier = GlanceModifier.defaultWeight())
-                    Image(ImageProvider(R.drawable.aria_pose_1), "ARIA", GlanceModifier.size(if (grande) 40.dp else 30.dp))
+                    Image(ImageProvider(R.drawable.aria_saluda), "ARIA", GlanceModifier.size(if (grande) 40.dp else 30.dp))
                 }
                 if (d.sinSesion) {
                     Text(L("Inicia sesión en Vanty", "Sign in to Vanty"), style = TextStyle(color = suave, fontSize = 13.sp))
@@ -113,7 +113,7 @@ class ResumenWidget : GlanceAppWidget() {
                 d.progreso?.let {
                     Spacer(GlanceModifier.height(4.dp))
                     LinearProgressIndicator(it, GlanceModifier.fillMaxWidth().height(6.dp).cornerRadius(3.dp),
-                        color = ColorProvider(Color(0xFFFFC53D), Color(0xFFFFC53D)), backgroundColor = ColorProvider(Color(0x40FFFFFF), Color(0x40FFFFFF)))
+                        color = ColorProvider(Color(0xFF5AC8FA), Color(0xFF5AC8FA)), backgroundColor = ColorProvider(Color(0x40FFFFFF), Color(0x40FFFFFF)))
                 }
                 Spacer(GlanceModifier.height(6.dp))
                 d.filas.forEach { f ->

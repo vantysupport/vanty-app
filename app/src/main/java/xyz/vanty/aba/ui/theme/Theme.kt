@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.sp
 val MarcaDesde = Color(0xFF01ABFC)
 val MarcaHasta = Color(0xFF0063D8)
 val MarcaDegradado = Brush.linearGradient(listOf(MarcaDesde, MarcaHasta))
-val Fuego = Brush.verticalGradient(listOf(Color(0xFFFFD43B), Color(0xFFFF9F1C), Color(0xFFFF6B1A)))
-val Oro = Color(0xFFFFC53D)
-val Naranja = Color(0xFFFF8A1F)
+val Fuego = Brush.verticalGradient(listOf(Color(0xFFBAE6FD), Color(0xFF01ABFC), Color(0xFF0063D8)))
+val Oro = Color(0xFF5AC8FA)
+val Naranja = Color(0xFF0A8CF0)
 
 @Immutable
 data class Tonos(
@@ -35,12 +35,12 @@ data class Tonos(
 private val Claro = Tonos(
     fondo = Color(0xFFF3F8FE), tarjeta = Color.White, borde = Color(0xFFE2EAF5), relleno = Color(0xFFEEF3FA),
     texto = Color(0xFF0B1B33), secundario = Color(0xFF4A5B78), terciario = Color(0xFF7A8BA6),
-    acento = Color(0xFF0069DB), acentoSuave = Color(0x1A0199F5), exito = Color(0xFF0EA5E9), aviso = Color(0xFFF59E0B), peligro = Color(0xFFE5484D),
+    acento = Color(0xFF0069DB), acentoSuave = Color(0x1A0199F5), exito = Color(0xFF0EA5E9), aviso = Color(0xFF1D4ED8), peligro = Color(0xFFE5484D),
 )
 private val Oscuro = Tonos(
     fondo = Color(0xFF0D1117), tarjeta = Color(0xFF161B22), borde = Color(0xFF262D36), relleno = Color(0xFF1F262E),
     texto = Color(0xFFE6EDF3), secundario = Color(0xFF9BA7B4), terciario = Color(0xFF6E7681),
-    acento = Color(0xFF3BB6FF), acentoSuave = Color(0x243BB6FF), exito = Color(0xFF38BDF8), aviso = Color(0xFFFBBF24), peligro = Color(0xFFFF6B6F),
+    acento = Color(0xFF3BB6FF), acentoSuave = Color(0x243BB6FF), exito = Color(0xFF38BDF8), aviso = Color(0xFF60A5FA), peligro = Color(0xFFFF6B6F),
 )
 
 val LocalTonos = staticCompositionLocalOf { Claro }

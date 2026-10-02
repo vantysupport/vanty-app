@@ -35,11 +35,11 @@ object Pintura {
     // Todos de la paleta de Vanty (degradado de marca #01ABFC → #0063D8 y sus variantes)
     val azul = Brush.linearGradient(listOf(Color(0xFF01ABFC), Color(0xFF0063D8)))
     val verde = Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0369A1)))      // celeste profundo
-    val naranja = Brush.linearGradient(listOf(Color(0xFFFFB020), Color(0xFFF59E0B)))    // aviso de Vanty (racha)
+    val naranja = Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF1D4ED8)))    // aviso de Vanty (racha)
     val morado = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1E40AF)))     // azul índigo
     val rosa = Brush.linearGradient(listOf(Color(0xFF60A5FA), Color(0xFF2563EB)))       // azul medio
     val turquesa = Brush.linearGradient(listOf(Color(0xFF7DD3FC), Color(0xFF0EA5E9)))   // cielo
-    val dorado = Brush.linearGradient(listOf(Color(0xFFFFC23D), Color(0xFFF59E0B)))
+    val dorado = Brush.linearGradient(listOf(Color(0xFF7DD3FC), Color(0xFF1D4ED8)))
     val gris = Brush.linearGradient(listOf(Color(0xFF94A3B8), Color(0xFF64748B)))
 }
 

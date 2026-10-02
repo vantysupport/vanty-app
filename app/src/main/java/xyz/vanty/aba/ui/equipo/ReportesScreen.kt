@@ -66,7 +66,7 @@ import java.util.Locale
 
 private val COLOR_METODO = mapOf(
     "efectivo" to Color(0xFF0063D8), "yape" to Color(0xFF1E40AF), "plin" to Color(0xFF01ABFC),
-    "transferencia" to Color(0xFF38BDF8), "tarjeta" to Color(0xFFF59E0B),
+    "transferencia" to Color(0xFF38BDF8), "tarjeta" to Color(0xFF1D4ED8),
 )
 private val PALETA = listOf(Color(0xFF0063D8), Color(0xFF01ABFC), Color(0xFF38BDF8), Color(0xFF1E40AF), Color(0xFF7DD3FC), Color(0xFF3B82F6))
 

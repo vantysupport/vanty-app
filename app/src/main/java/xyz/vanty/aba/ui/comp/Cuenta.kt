@@ -130,7 +130,7 @@ private fun DialogoEliminar(e: Estado, vm: AppViewModel, onCerrar: () -> Unit) {
 @Composable
 fun FestejoPantalla(
     titulo: String, subtitulo: String, @DrawableRes pose: Int, onCerrar: () -> Unit,
-    acento: Color = Color(0xFFFFC53D), boton: Color = Color(0xFFFF8A1F), labio: Color = Color(0xFFC85A00),
+    acento: Color = Color(0xFF5AC8FA), boton: Color = Color(0xFF0A8CF0), labio: Color = Color(0xFF0B5C9E),
     monedas: Boolean = false, grande: String? = null,
 ) {
     val haptic = LocalHapticFeedback.current

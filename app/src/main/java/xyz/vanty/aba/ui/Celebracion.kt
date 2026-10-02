@@ -99,7 +99,7 @@ fun Celebracion(dias: Int, racha: Racha, onCerrar: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.height(24.dp))
-                BotonGrande(L("¡CONTINUAR!", "CONTINUE!"), onCerrar, Modifier.fillMaxWidth(), color = Naranja, labio = Color(0xFFC85A00))
+                BotonGrande(L("¡CONTINUAR!", "CONTINUE!"), onCerrar, Modifier.fillMaxWidth(), color = Naranja, labio = Color(0xFF0B5C9E))
             }
         }
     }
