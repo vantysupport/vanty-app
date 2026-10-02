@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo "pintado" del widget de ARIA (verde): degradado con círculos de luz, como una ilustración. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:angle="300" android:startColor="#38BDF8" android:endColor="#0369A1" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <item android:width="170dp" android:height="170dp" android:gravity="bottom|end" android:right="-40dp" android:bottom="-50dp">
+        <shape android:shape="oval"><solid android:color="#26FFFFFF" /></shape>
+    </item>
+    <item android:width="90dp" android:height="90dp" android:gravity="top|start" android:left="-30dp" android:top="-30dp">
+        <shape android:shape="oval"><solid android:color="#1AFFFFFF" /></shape>
+    </item>
+</layer-list>

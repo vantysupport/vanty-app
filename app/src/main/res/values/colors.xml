@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="vanty_blue">#0069DB</color>
+    <color name="vanty_sky">#01ABFC</color>
+    <color name="vanty_deep">#0063D8</color>
+    <color name="vanty_bg">#F3F8FE</color>
+    <color name="white">#FFFFFF</color>
+</resources>

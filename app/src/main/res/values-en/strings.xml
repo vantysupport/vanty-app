@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_racha_nombre">ARIA</string>
+    <string name="widget_racha_desc">ARIA\'s mood changes with your streak and your day</string>
+    <string name="widget_resumen_nombre">Your summary</string>
+    <string name="widget_resumen_desc">Streak, next visit and messages (or your day, for the team)</string>
+</resources>

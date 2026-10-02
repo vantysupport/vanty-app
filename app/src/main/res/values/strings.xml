@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vanty ABA</string>
+    <string name="widget_racha_nombre">ARIA</string>
+    <string name="widget_racha_desc">ARIA cambia de ánimo según tu racha y tu día</string>
+    <string name="widget_resumen_nombre">Tu resumen</string>
+    <string name="widget_resumen_desc">Racha, próxima cita y mensajes (o tu día, si eres del equipo)</string>
+</resources>

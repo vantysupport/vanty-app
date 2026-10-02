@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en la versión debug: pantalla de demostración con datos de ejemplo (ver DemoActivity). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".DemoActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Vanty" />
+    </application>
+</manifest>
