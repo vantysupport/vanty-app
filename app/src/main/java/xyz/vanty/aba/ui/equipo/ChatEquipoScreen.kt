@@ -1,5 +1,6 @@
 package xyz.vanty.aba.ui.equipo
 
+import androidx.compose.material.icons.rounded.Search
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
