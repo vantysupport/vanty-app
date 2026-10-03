@@ -10,10 +10,8 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Shader
 import android.widget.RemoteViews
 import android.os.Build
 import androidx.annotation.DrawableRes
@@ -93,7 +91,7 @@ object Avisos {
             setInt(R.id.raiz, "setBackgroundResource", tema.fondo)
             setTextViewText(R.id.titulo, titulo)
             setTextViewText(R.id.texto, texto)
-            if (cara) setImageViewBitmap(R.id.aria, recorteAria(ctx, pose)) else setImageViewResource(R.id.aria, pose.img)
+            if (cara) setImageViewBitmap(R.id.aria, caraAria(ctx, pose)) else setImageViewResource(R.id.aria, pose.img)
         }
         val chica = pintada(R.layout.notif_aria, cara = true)
         val b = NotificationCompat.Builder(ctx, canal)
@@ -117,37 +115,24 @@ object Avisos {
     }
 
     // ── Mensajes de familias ────────────────────────────────────────────────
-    /** Mitad de arriba de ARIA (cabeza y hombros) para que en el aviso chico se vea grande, como la cara de Duo. */
-    private fun recorteAria(ctx: Context, pose: Pose): Bitmap {
-        val d = ContextCompat.getDrawable(ctx, pose.img)!!
-        val ancho = 256
-        val alto = ancho * d.intrinsicHeight / d.intrinsicWidth.coerceAtLeast(1)
-        val bmp = Bitmap.createBitmap(ancho, (alto * 0.62f).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
-        d.setBounds(0, 0, ancho, alto)
-        d.draw(Canvas(bmp))
-        return bmp
-    }
-
-    /** ARIA dentro de un círculo celeste de Vanty, para usarla como icono grande (como Duo en Duolingo). */
+    /**
+     * ARIA como "foto de perfil" (como Duo en Duolingo): círculo celeste claro con su cara y hombros grandes.
+     * Sobre el fondo azul del aviso se distingue bien (ARIA es azul: sin el círculo solo se veían las orejas).
+     */
     private fun caraAria(ctx: Context, pose: Pose): Bitmap {
-        val lado = (ctx.resources.displayMetrics.density * 64).toInt().coerceIn(128, 256)
+        val lado = 256
         val bmp = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val r = lado / 2f
-        val fondo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = LinearGradient(0f, 0f, 0f, lado.toFloat(),
-                Color.parseColor("#E8F3FF"), Color.parseColor("#BFDDFF"), Shader.TileMode.CLAMP)
-        }
-        c.drawCircle(r, r, r, fondo)
+        c.drawCircle(r, r, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#EAF3FF") })
         val d = ContextCompat.getDrawable(ctx, pose.img) ?: return bmp
-        // Recorta al círculo y pone a ARIA un poco grande y apoyada abajo, como un retrato
         c.save()
         c.clipPath(Path().apply { addCircle(r, r, r, Path.Direction.CW) })
-        val alto = lado * 0.98f
-        val ancho = alto * d.intrinsicWidth / d.intrinsicHeight.coerceAtLeast(1)
-        val izq = (lado - ancho) / 2f
-        val arriba = lado - alto + lado * 0.06f
-        d.setBounds(izq.toInt(), arriba.toInt(), (izq + ancho).toInt(), (arriba + alto).toInt())
+        // 1.3× el círculo y un poco hacia abajo: entra la cabeza completa y se ve el torso con el logo
+        val t = (lado * 1.3f).toInt()
+        val x = (lado - t) / 2
+        val y = (lado * 0.04f).toInt()
+        d.setBounds(x, y, x + t, y + t)
         d.draw(c)
         c.restore()
         return bmp
