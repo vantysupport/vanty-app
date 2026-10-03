@@ -7,9 +7,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Shader
 import android.os.Build
-import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -21,9 +26,8 @@ import xyz.vanty.aba.util.L
 import java.time.LocalDate
 
 /**
- * Notificaciones "pintadas" al estilo Duolingo: el aviso entero es de un color según su tono, con un
- * título con emoji que te llama por tu nombre, texto con gancho, ARIA grande a la derecha y, al
- * desplegarla, un botón blanco que lleva directo a la acción.
+ * Notificaciones al estilo Duolingo: aviso estándar del sistema con ARIA en un círculo, título con
+ * emoji que te llama por tu nombre y texto con gancho (a veces con un poquito de drama).
  */
 object Avisos {
     const val CANAL_RACHA = "racha"
@@ -36,7 +40,7 @@ object Avisos {
         // Como la guía "ARIA adaptada para Vanty ABA": saluda, motiva, celebra, piensa, recuerda, acompaña, logro, descanso
         SALUDO(R.drawable.aria_saluda), CELEBRA(R.drawable.aria_festeja), PENSANDO(R.drawable.aria_preocupada),
         FELIZ(R.drawable.aria_contenta), GUINO(R.drawable.aria_pulgar_arriba), CORRE(R.drawable.aria_corre),
-        LAPTOP(R.drawable.aria_laptop_sentada), NEUTRAL(R.drawable.aria_atenta),
+        LAPTOP(R.drawable.aria_laptop_sentada), NEUTRAL(R.drawable.aria_atenta), CAFE(R.drawable.aria_cafe),
     }
 
     /** Color de fondo de cada tipo de aviso (y el del texto del botón blanco). */
@@ -80,25 +84,15 @@ object Avisos {
     ) {
         if (!permitidas(ctx)) return
         val toque = abrir(ctx, vista, id)
-        // Título sin emoji al inicio (como la guía de notificaciones de Vanty): la expresión la pone ARIA
-        val limpio = titulo.replace(Regex("^[^\\p{L}\\p{N}¡¿]+"), "").ifBlank { titulo }
-        fun vista(layout: Int) = RemoteViews(ctx.packageName, layout).apply {
-            setInt(R.id.raiz, "setBackgroundResource", tema.fondo)
-            setTextViewText(R.id.titulo, limpio)
-            setTextViewText(R.id.texto, texto)
-            setImageViewResource(R.id.aria, pose.img)
-        }
-        val chica = vista(R.layout.notif_aria)
-        val grande = vista(R.layout.notif_aria_grande)
+        // Igual que Duolingo: notificación estándar del sistema (sin tarjeta pintada), con ARIA en un
+        // círculo como "foto" del remitente, título con emoji y el texto completo al desplegarla.
         val b = NotificationCompat.Builder(ctx, canal)
             .setSmallIcon(R.drawable.ic_stat_vanty)
             .setColor(ContextCompat.getColor(ctx, R.color.vanty_blue))
-            .setContentTitle(limpio) // para lectores de pantalla, relojes y la vista de "notificaciones recientes"
+            .setLargeIcon(caraAria(ctx, pose))
+            .setContentTitle(titulo)
             .setContentText(texto)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .setCustomContentView(chica)
-            .setCustomBigContentView(grande)
-            .setCustomHeadsUpContentView(chica)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(texto))
             .setContentIntent(toque)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
@@ -111,6 +105,31 @@ object Avisos {
     }
 
     // ── Mensajes de familias ────────────────────────────────────────────────
+    /** ARIA dentro de un círculo celeste de Vanty, para usarla como icono grande (como Duo en Duolingo). */
+    private fun caraAria(ctx: Context, pose: Pose): Bitmap {
+        val lado = (ctx.resources.displayMetrics.density * 64).toInt().coerceIn(128, 256)
+        val bmp = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val r = lado / 2f
+        val fondo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(0f, 0f, 0f, lado.toFloat(),
+                Color.parseColor("#E8F3FF"), Color.parseColor("#BFDDFF"), Shader.TileMode.CLAMP)
+        }
+        c.drawCircle(r, r, r, fondo)
+        val d = ContextCompat.getDrawable(ctx, pose.img) ?: return bmp
+        // Recorta al círculo y pone a ARIA un poco grande y apoyada abajo, como un retrato
+        c.save()
+        c.clipPath(Path().apply { addCircle(r, r, r, Path.Direction.CW) })
+        val alto = lado * 0.98f
+        val ancho = alto * d.intrinsicWidth / d.intrinsicHeight.coerceAtLeast(1)
+        val izq = (lado - ancho) / 2f
+        val arriba = lado - alto + lado * 0.06f
+        d.setBounds(izq.toInt(), arriba.toInt(), (izq + ancho).toInt(), (arriba + alto).toInt())
+        d.draw(c)
+        c.restore()
+        return bmp
+    }
+
     private fun <T> deHoy(opciones: List<T>): T = opciones[LocalDate.now().dayOfYear % opciones.size]
     private fun yo(ctx: Context) = Prefs(ctx).nombreUsuario
     private fun conNombre(ctx: Context, sin: String, con: (String) -> String) = yo(ctx).let { if (it.isBlank()) sin else con(it) }
@@ -128,6 +147,10 @@ object Avisos {
                 L("Hoy todavía no practican. ¡Una actividad cortita y encendemos la llama!", "No practice yet today. One short activity lights the flame!")),
             Msg(Pose.CORRE, Tema.Azul, L("🔥 ¿Empezamos una racha?", "🔥 Shall we start a streak?"),
                 L("Practicar un poquito cada día con $quien hace magia. ¡Hoy es el día uno!", "A little practice every day with $quien works wonders. Today is day one!")),
+            Msg(Pose.PENSANDO, Tema.Azul, conNombre(ctx, L("💔 Adiós...", "💔 Goodbye...")) { L("💔 Adiós, $it", "💔 Goodbye, $it") },
+                L("Ya no practicas conmigo. Me doy cuenta. Dejaré de molestarte... (mentira, mañana vuelvo 🙃)", "You don't practice with me anymore. I get it. I'll stop bothering you... (just kidding, see you tomorrow 🙃)")),
+            Msg(Pose.CAFE, Tema.Azul, L("☕ Te guardé un cafecito", "☕ I saved you a coffee"),
+                L("Y una actividad de 5 minutos para $quien. El café se enfría, la actividad no. 😌", "And a 5-minute activity for $quien. The coffee gets cold, the activity doesn't. 😌")),
         )) else deHoy(listOf(
             Msg(Pose.PENSANDO, Tema.Naranja, if (n.isBlank()) L("😰 ¡Tu racha de $dias ${palabraDias(dias)}!", "😰 Your $dias-day streak!") else L("😰 ¡$n, tu racha de $dias ${palabraDias(dias)}!", "😰 $n, your $dias-day streak!"),
                 L("Se apaga a medianoche. ¿Practicamos con $quien ahora?", "It goes out at midnight. Practice with $quien now?")),
@@ -135,6 +158,8 @@ object Avisos {
                 L("$dias ${palabraDias(dias)} seguidos con $quien. ¡Hoy suman uno más!", "$dias days in a row with $quien. Add one more today!")),
             Msg(Pose.GUINO, Tema.Naranja, conNombre(ctx, L("😩 ¿En serio?", "😩 Seriously?")) { L("😩 ¿En serio, $it?", "😩 Seriously, $it?") },
                 L("¿Abriste el celular y no practicaste? 5 minutos con $quien y te dejo en paz.", "You opened your phone and didn't practice? 5 minutes with $quien and I'll leave you alone.")),
+            Msg(Pose.PENSANDO, Tema.Naranja, L("🥺 Estas notificaciones no funcionan", "🥺 These reminders aren't working"),
+                L("Y tu racha de $dias ${palabraDias(dias)} lo sabe. ¿Una práctica rapidita con $quien?", "And your $dias-day streak knows it. A quick practice with $quien?")),
         ))
         mostrar(ctx, ID_RACHA, CANAL_RACHA, m.pose, m.titulo, m.texto, "practicar", L("Practicar ahora", "Practice now"), tema = m.tema)
     }
