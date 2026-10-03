@@ -54,8 +54,8 @@ class MensajesWidget : GlanceAppWidget() {
         val ctx = LocalContext.current
         val ancho = LocalSize.current.width >= 200.dp
         Box(GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_tarjeta)).cornerRadius(24.dp).clickable(abrir(ctx, if (sesion) vista else "inicio"))) {
-            if (ancho) Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
-                Image(ImageProvider(if (n > 0) R.drawable.aria_celular else R.drawable.aria_pulgar_arriba), "ARIA", GlanceModifier.size(92.dp).padding(end = 4.dp))
+            Box(GlanceModifier.fillMaxSize().padding(end = 4.dp, bottom = 2.dp), contentAlignment = Alignment.BottomEnd) {
+                AriaAnimada(if (n > 0) Secuencia.mensajes else Secuencia.aldia, GlanceModifier.size(if (ancho) 96.dp else 58.dp))
             }
             Column(GlanceModifier.fillMaxSize().padding(14.dp)) {
                 Cabecera(L("Mensajes", "Messages"), null)
@@ -70,12 +70,12 @@ class MensajesWidget : GlanceAppWidget() {
                 Spacer(GlanceModifier.height(2.dp))
                 Text(
                     when {
-                        n == 0 -> L("Estás al día ✓", "All caught up ✓")
+                        n == 0 -> L("Estás al día", "All caught up")
                         familia -> L(if (n == 1) "mensaje del centro" else "mensajes del centro", if (n == 1) "message from the center" else "messages from the center")
-                        else -> L(if (n == 1) "sin leer" else "sin leer", "unread")
+                        else -> L("sin leer", "unread")
                     },
                     style = TextStyle(color = Wc.suave, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 2,
-                    modifier = GlanceModifier.fillMaxWidth().padding(end = if (ancho) 90.dp else 0.dp),
+                    modifier = GlanceModifier.fillMaxWidth().padding(end = if (ancho) 92.dp else 56.dp),
                 )
             }
         }

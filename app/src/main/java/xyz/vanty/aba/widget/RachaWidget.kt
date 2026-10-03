@@ -25,7 +25,9 @@ import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.width
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
@@ -50,7 +52,7 @@ class RachaWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(setOf(DpSize(110.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 200.dp)))
 
-    private data class Animo(@DrawableRes val fondo: Int, @DrawableRes val pose: Int, val titulo: String, val texto: String, val pastilla: String?)
+    private data class Animo(@DrawableRes val fondo: Int, val poses: List<Int>, val titulo: String, val texto: String, val pastilla: String?, @DrawableRes val icono: Int = R.drawable.ic_w_llama_blanca)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val animo = animo(Prefs(context))
@@ -60,7 +62,7 @@ class RachaWidget : GlanceAppWidget() {
     private fun animo(p: Prefs): Animo {
         val rol = Rol.de(p.rol)
         val nombre = p.nombreUsuario
-        if (p.usuarioId == null) return Animo(R.drawable.widget_animo_azul, R.drawable.aria_saluda,
+        if (p.usuarioId == null) return Animo(R.drawable.widget_animo_azul, Secuencia.saluda,
             L("¡Hola! Soy ARIA", "Hi! I'm ARIA"), L("Inicia sesión en Vanty", "Sign in to Vanty"), null)
 
         if (rol == Rol.Familia) {
@@ -68,18 +70,18 @@ class RachaWidget : GlanceAppWidget() {
             val hijo = p.nombreHijo.substringBefore(' ')
             val noche = LocalTime.now().hour >= 18
             return when {
-                r.hoy -> Animo(R.drawable.widget_animo_verde, R.drawable.aria_festeja,
+                r.hoy -> Animo(R.drawable.widget_animo_verde, Secuencia.celebra,
                     L("¡Racha de ${r.dias} ${if (r.dias == 1) "día" else "días"}!", "${r.dias}-day streak!"),
-                    L("¡Hoy ya practicaron! ARIA está feliz 💚", "You practiced today! ARIA is happy 💚"), "🔥 ${r.dias}")
-                r.dias > 0 && noche -> Animo(R.drawable.widget_animo_naranja, R.drawable.aria_preocupada,
-                    L("¡No me dejes! 😟", "Don't leave me! 😟"),
-                    L("Tu racha de ${r.dias} ${if (r.dias == 1) "día" else "días"} se apaga a medianoche", "Your ${r.dias}-day streak ends at midnight"), "🔥 ${r.dias}")
-                r.dias > 0 -> Animo(R.drawable.widget_animo_azul, R.drawable.aria_saluda,
+                    L("¡Hoy ya practicaron! ARIA está feliz", "You practiced today! ARIA is happy"), "${r.dias}")
+                r.dias > 0 && noche -> Animo(R.drawable.widget_animo_naranja, Secuencia.preocupada,
+                    L("¡No me dejes!", "Don't leave me!"),
+                    L("Tu racha de ${r.dias} ${if (r.dias == 1) "día" else "días"} se apaga a medianoche", "Your ${r.dias}-day streak ends at midnight"), "${r.dias}")
+                r.dias > 0 -> Animo(R.drawable.widget_animo_azul, Secuencia.anima,
                     L("¡A practicar hoy!", "Let's practice today!"),
-                    if (hijo.isNotBlank()) L("5 minutos con $hijo y suman un día más", "5 minutes with $hijo adds one more day") else L("Suma un día más a tu racha", "Add one more day"), "🔥 ${r.dias}")
-                else -> Animo(R.drawable.widget_animo_noche, R.drawable.aria_atenta,
+                    if (hijo.isNotBlank()) L("5 minutos con $hijo y suman un día más", "5 minutes with $hijo adds one more day") else L("Suma un día más a tu racha", "Add one more day"), "${r.dias}")
+                else -> Animo(R.drawable.widget_animo_noche, Secuencia.vuelve,
                     if (nombre.isNotBlank()) L("¡Vuelve con ARIA, $nombre!", "Come back to ARIA, $nombre!") else L("¡Vuelve con ARIA!", "Come back to ARIA!"),
-                    L("Empieza una nueva racha hoy 🌱", "Start a new streak today 🌱"), null)
+                    L("Empieza una nueva racha hoy", "Start a new streak today"), null)
             }
         }
 
@@ -87,15 +89,15 @@ class RachaWidget : GlanceAppWidget() {
         val total = a?.total ?: 0
         val hechas = a?.hechas ?: 0
         return when {
-            total == 0 -> Animo(R.drawable.widget_animo_morado, R.drawable.aria_contenta,
-                L("Día libre ☕", "Free day ☕"), L("No hay sesiones agendadas hoy", "No sessions scheduled today"), null)
-            hechas >= total -> Animo(R.drawable.widget_animo_verde, R.drawable.aria_festeja,
-                L("¡Día completado! 🎉", "Day complete! 🎉"), L("Registraste todas tus sesiones", "All your sessions recorded"), "✓ $hechas/$total")
-            LocalTime.now().hour >= 18 -> Animo(R.drawable.widget_animo_naranja, R.drawable.aria_bienvenida,
-                L("¡Ya casi! 😅", "Almost there! 😅"), L("Te faltan ${total - hechas} por registrar", "${total - hechas} left to record"), "$hechas/$total")
-            else -> Animo(R.drawable.widget_animo_azul, R.drawable.aria_laptop,
+            total == 0 -> Animo(R.drawable.widget_animo_morado, Secuencia.descansa,
+                L("Día libre", "Free day"), L("No hay sesiones agendadas hoy", "No sessions scheduled today"), null)
+            hechas >= total -> Animo(R.drawable.widget_animo_verde, Secuencia.celebra,
+                L("¡Día completado!", "Day complete!"), L("Registraste todas tus sesiones", "All your sessions recorded"), "$hechas/$total", R.drawable.ic_w_check_blanco)
+            LocalTime.now().hour >= 18 -> Animo(R.drawable.widget_animo_naranja, Secuencia.preocupada,
+                L("¡Ya casi!", "Almost there!"), L("Te faltan ${total - hechas} por registrar", "${total - hechas} left to record"), "$hechas/$total", R.drawable.ic_w_check_blanco)
+            else -> Animo(R.drawable.widget_animo_azul, Secuencia.trabaja,
                 if (nombre.isNotBlank()) L("¡Vamos, $nombre!", "Let's go, $nombre!") else L("¡Vamos con todo!", "Let's go!"),
-                L("Te quedan ${total - hechas} ${if (total - hechas == 1) "sesión" else "sesiones"} hoy", "${total - hechas} session${if (total - hechas == 1) "" else "s"} left today"), "$hechas/$total")
+                L("Te quedan ${total - hechas} ${if (total - hechas == 1) "sesión" else "sesiones"} hoy", "${total - hechas} session${if (total - hechas == 1) "" else "s"} left today"), "$hechas/$total", R.drawable.ic_w_check_blanco)
         }
     }
 
@@ -111,7 +113,7 @@ class RachaWidget : GlanceAppWidget() {
         ) {
             // ARIA grande, asomándose desde abajo a la derecha
             Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
-                Image(ImageProvider(a.pose), "ARIA", GlanceModifier.size(if (alto) 150.dp else if (ancho) 115.dp else 96.dp).padding(end = 6.dp))
+                AriaAnimada(a.poses, GlanceModifier.size(if (alto) 150.dp else if (ancho) 115.dp else 96.dp).padding(end = 6.dp))
             }
             Column(GlanceModifier.fillMaxSize().padding(14.dp)) {
                 Text(a.titulo, style = TextStyle(color = blanco, fontSize = if (ancho) 20.sp else 16.sp, fontWeight = FontWeight.Bold), maxLines = 2)
@@ -120,7 +122,10 @@ class RachaWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.padding(end = if (ancho) 96.dp else 0.dp))
                 Spacer(GlanceModifier.defaultWeight())
                 if (a.pastilla != null) {
-                    Box(GlanceModifier.background(ImageProvider(R.drawable.widget_pastilla)).padding(horizontal = 12.dp, vertical = 5.dp)) {
+                    Row(GlanceModifier.background(ImageProvider(R.drawable.widget_pastilla)).padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Image(ImageProvider(a.icono), null, GlanceModifier.size(16.dp))
+                        Spacer(GlanceModifier.width(5.dp))
                         Text(a.pastilla, style = TextStyle(color = blanco, fontSize = 15.sp, fontWeight = FontWeight.Bold))
                     }
                 }

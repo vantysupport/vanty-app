@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ARIA "animada" en los widgets: cambia de pose sola con un fundido (los widgets no admiten video ni Lottie). -->
+<ViewFlipper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:autoStart="true"
+    android:flipInterval="2800"
+    android:inAnimation="@anim/aria_entra"
+    android:outAnimation="@anim/aria_sale">
+
+    <ImageView android:id="@+id/w_aria_1" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:contentDescription="ARIA" android:scaleType="fitCenter" />
+    <ImageView android:id="@+id/w_aria_2" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:contentDescription="ARIA" android:scaleType="fitCenter" />
+    <ImageView android:id="@+id/w_aria_3" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:contentDescription="ARIA" android:scaleType="fitCenter" />
+</ViewFlipper>

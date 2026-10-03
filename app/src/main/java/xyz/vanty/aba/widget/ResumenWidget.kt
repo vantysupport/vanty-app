@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
@@ -29,6 +30,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -52,15 +54,15 @@ class ResumenWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(setOf(DpSize(150.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 180.dp)))
 
-    private data class Dato(val etiqueta: String, val valor: String, val vista: String, val destacado: Boolean = false)
-    private data class Datos(val titulo: String, val datos: List<Dato>, val progreso: Float?, val sinSesion: Boolean)
+    private data class Dato(val icono: Int, val etiqueta: String, val valor: String, val vista: String, val destacado: Boolean = false)
+    private data class Datos(val titulo: String, val datos: List<Dato>, val progreso: Float?, val sinSesion: Boolean, val aria: List<Int> = Secuencia.saluda)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val d = datos(Prefs(context))
         provideContent { Contenido(d) }
     }
 
-    private fun mensajes(p: Prefs, rol: Rol) = Dato(L("Mensajes", "Messages"),
+    private fun mensajes(p: Prefs, rol: Rol) = Dato(R.drawable.ic_w_chat, L("Mensajes", "Messages"),
         if (p.sinLeer > 0) L("${p.sinLeer} ${if (p.sinLeer == 1) "nuevo" else "nuevos"}", "${p.sinLeer} new") else L("Al día", "All caught up"),
         Destino.mensajes(rol), destacado = p.sinLeer > 0)
 
@@ -70,31 +72,44 @@ class ResumenWidget : GlanceAppWidget() {
         if (rol == Rol.Familia) {
             val r = p.rachaVigente()
             val cita = p.proximaCita?.split("|")
+            val aria = when {
+                r.hoy -> Secuencia.celebra
+                r.dias > 0 && LocalTime.now().hour >= 18 -> Secuencia.preocupada
+                r.dias > 0 -> Secuencia.anima
+                else -> Secuencia.saluda
+            }
             return Datos(p.nombreHijo.substringBefore(' ').ifBlank { L("Hoy en Vanty", "Today in Vanty") }, listOf(
-                Dato(L("Racha", "Streak"), if (r.dias > 0) "🔥 ${r.dias} ${if (r.dias == 1) L("día", "day") else L("días", "days")}" else L("Empieza hoy", "Start today"), "practicar", destacado = r.hoy),
-                Dato(L("Próxima cita", "Next visit"), cita?.let { cuando(it[0], it.getOrElse(1) { "" }) } ?: L("Sin citas", "None"), "citas"),
+                Dato(R.drawable.ic_w_llama, L("Racha", "Streak"), if (r.dias > 0) "${r.dias} ${if (r.dias == 1) L("día", "day") else L("días", "days")}" else L("Empieza hoy", "Start today"), "practicar", destacado = r.hoy),
+                Dato(R.drawable.ic_w_calendario, L("Próxima cita", "Next visit"), cita?.let { cuando(it[0], it.getOrElse(1) { "" }) } ?: L("Sin citas", "None"), "citas"),
                 mensajes(p, rol),
-            ), null, false)
+            ), null, false, aria)
         }
         val a = p.agendaHoy?.takeIf { it.fecha == LocalDate.now().toString() }
         val ahora = LocalTime.now().toString().take(5)
         val activas = a?.citas.orEmpty().filter { it.estado == "pending" || it.estado == "confirmed" }
         val sig = activas.firstOrNull { it.hora >= ahora }
-        val siguiente = Dato(L("Siguiente", "Next"), sig?.let { "${hora12(it.hora)} · ${it.paciente.substringBefore(' ')}" } ?: L("Nada pendiente", "Nothing pending"), "agenda")
+        val siguiente = Dato(R.drawable.ic_w_reloj, L("Siguiente", "Next"), sig?.let { "${hora12(it.hora)} · ${it.paciente.substringBefore(' ')}" } ?: L("Nada pendiente", "Nothing pending"), "agenda")
         if (rol == Rol.Secretaria) {
             val porConfirmar = a?.citas.orEmpty().count { it.estado == "pending" }
             return Datos(L("Recepción hoy", "Front desk today"), listOf(
-                Dato(L("Citas de hoy", "Today's visits"), "${a?.total ?: 0}", "agenda"),
-                Dato(L("Por confirmar", "To confirm"), "$porConfirmar", "agenda", destacado = porConfirmar > 0),
+                Dato(R.drawable.ic_w_calendario, L("Citas de hoy", "Today's visits"), "${a?.total ?: 0}", "agenda"),
+                Dato(R.drawable.ic_w_persona, L("Por confirmar", "To confirm"), "$porConfirmar", "agenda", destacado = porConfirmar > 0),
                 siguiente,
-            ), null, false)
+            ), null, false, if (porConfirmar > 0) Secuencia.mensajes else if ((a?.total ?: 0) == 0) Secuencia.descansa else Secuencia.trabaja)
         }
         val total = a?.total ?: 0
+        val hechas = a?.hechas ?: 0
+        val aria = when {
+            total == 0 -> Secuencia.descansa
+            hechas >= total -> Secuencia.celebra
+            LocalTime.now().hour >= 18 -> Secuencia.preocupada
+            else -> Secuencia.trabaja
+        }
         return Datos(L("Tu día", "Your day"), listOf(
-            Dato(L("Sesiones", "Sessions"), if (total == 0) L("Día libre", "Free day") else L("${a?.hechas ?: 0} de $total", "${a?.hechas ?: 0} of $total"), "agenda"),
+            Dato(R.drawable.ic_w_check, L("Sesiones", "Sessions"), if (total == 0) L("Día libre", "Free day") else L("${a?.hechas ?: 0} de $total", "${a?.hechas ?: 0} of $total"), "agenda"),
             siguiente,
             mensajes(p, rol),
-        ), a?.takeIf { it.total > 0 }?.let { it.hechas / it.total.toFloat() }, false)
+        ), a?.takeIf { it.total > 0 }?.let { it.hechas / it.total.toFloat() }, false, aria)
     }
 
     @Composable
@@ -104,7 +119,7 @@ class ResumenWidget : GlanceAppWidget() {
         val alto = LocalSize.current.height >= 180.dp
         Box(GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_tarjeta)).cornerRadius(24.dp).clickable(abrir(ctx, "inicio"))) {
             Column(GlanceModifier.fillMaxSize().padding(14.dp)) {
-                Cabecera(d.titulo, if (ancho) hoyCorto() else null)
+                Cabecera(d.titulo, hoyCorto(), d.aria)
                 if (d.sinSesion) {
                     Spacer(GlanceModifier.height(10.dp))
                     Text(L("Inicia sesión en Vanty para ver tu día", "Sign in to Vanty to see your day"), style = TextStyle(color = Wc.suave, fontSize = 13.sp))
@@ -139,8 +154,12 @@ class ResumenWidget : GlanceAppWidget() {
         val ctx = LocalContext.current
         Column(modifier.background(ImageProvider(R.drawable.widget_casilla)).cornerRadius(16.dp).padding(horizontal = 10.dp, vertical = 8.dp).clickable(abrir(ctx, x.vista)),
             verticalAlignment = Alignment.CenterVertically) {
-            Text(x.etiqueta, style = TextStyle(color = Wc.suave, fontSize = 11.sp, fontWeight = FontWeight.Medium), maxLines = 1)
-            Spacer(GlanceModifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(ImageProvider(x.icono), null, GlanceModifier.size(14.dp))
+                Spacer(GlanceModifier.width(5.dp))
+                Text(x.etiqueta, style = TextStyle(color = Wc.suave, fontSize = 11.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+            }
+            Spacer(GlanceModifier.height(3.dp))
             Text(x.valor, style = TextStyle(color = if (x.destacado) Wc.acento else Wc.texto, fontSize = 14.sp, fontWeight = FontWeight.Bold), maxLines = 2)
         }
     }
@@ -151,6 +170,8 @@ class ResumenWidget : GlanceAppWidget() {
         Row(GlanceModifier.fillMaxWidth().background(ImageProvider(R.drawable.widget_casilla)).cornerRadius(14.dp)
             .padding(horizontal = 12.dp, vertical = if (alto) 9.dp else 5.dp).clickable(abrir(ctx, x.vista)),
             verticalAlignment = Alignment.CenterVertically) {
+            Image(ImageProvider(x.icono), null, GlanceModifier.size(16.dp))
+            Spacer(GlanceModifier.width(8.dp))
             Text(x.etiqueta, style = TextStyle(color = Wc.suave, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1, modifier = GlanceModifier.defaultWeight())
             Spacer(GlanceModifier.width(8.dp))
             Text(x.valor, style = TextStyle(color = if (x.destacado) Wc.acento else Wc.texto, fontSize = 13.sp, fontWeight = FontWeight.Bold), maxLines = 1)

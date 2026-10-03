@@ -11,10 +11,14 @@ import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.Action
+import android.widget.RemoteViews
+import androidx.glance.LocalContext
+import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.updateAll
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxWidth
@@ -60,15 +64,45 @@ object Destino {
     fun mensajes(rol: Rol) = when (rol) { Rol.Familia -> "chat-familias"; Rol.Admin -> "chat"; else -> "hoy" }
 }
 
-/** Cabecera común: logo, título y fecha de hoy ("vie 3 oct"). */
+/** Cabecera común: logo, título, subtítulo (fecha o contador) y, si se pasa, ARIA animada a la derecha. */
 @Composable
-fun Cabecera(titulo: String, derecha: String? = hoyCorto()) {
+fun Cabecera(titulo: String, derecha: String? = hoyCorto(), aria: List<Int>? = null) {
     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Image(ImageProvider(R.drawable.widget_logo), "Vanty", GlanceModifier.size(20.dp))
+        Image(ImageProvider(R.drawable.widget_logo), "Vanty", GlanceModifier.size(22.dp))
         Spacer(GlanceModifier.width(8.dp))
-        Text(titulo, style = TextStyle(color = Wc.texto, fontSize = 14.sp, fontWeight = FontWeight.Bold), maxLines = 1, modifier = GlanceModifier.defaultWeight())
-        if (derecha != null) Text(derecha, style = TextStyle(color = Wc.suave, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+        Column(GlanceModifier.defaultWeight()) {
+            Text(titulo, style = TextStyle(color = Wc.texto, fontSize = 14.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+            if (derecha != null) Text(derecha, style = TextStyle(color = Wc.suave, fontSize = 11.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+        }
+        if (aria != null) AriaAnimada(aria, GlanceModifier.size(40.dp))
     }
+}
+
+/**
+ * ARIA "animada": un ViewFlipper que cambia de pose solo cada ~3 s con fundido y un leve rebote.
+ * (Los widgets de Android no admiten video ni Lottie; así lo hacen las apps profesionales.)
+ */
+@Composable
+fun AriaAnimada(poses: List<Int>, modifier: GlanceModifier) {
+    val ctx = LocalContext.current
+    val ids = listOf(R.id.w_aria_1, R.id.w_aria_2, R.id.w_aria_3)
+    val rv = RemoteViews(ctx.packageName, R.layout.widget_aria_animada).apply {
+        ids.forEachIndexed { i, id -> setImageViewResource(id, poses[i % poses.size]) }
+    }
+    AndroidRemoteViews(rv, modifier)
+}
+
+/** Secuencias de poses de ARIA según el momento (3 cuadros que se repiten). */
+object Secuencia {
+    val saluda = listOf(R.drawable.aria_saluda, R.drawable.aria_hola, R.drawable.aria_bienvenida)
+    val celebra = listOf(R.drawable.aria_festeja, R.drawable.aria_celebra, R.drawable.aria_salta)
+    val preocupada = listOf(R.drawable.aria_preocupada, R.drawable.aria_pensando, R.drawable.aria_atenta)
+    val anima = listOf(R.drawable.aria_corre, R.drawable.aria_pulgar_arriba, R.drawable.aria_brinca)
+    val trabaja = listOf(R.drawable.aria_laptop, R.drawable.aria_trabajando, R.drawable.aria_laptop_sentada)
+    val descansa = listOf(R.drawable.aria_cafe, R.drawable.aria_te, R.drawable.aria_descansa)
+    val mensajes = listOf(R.drawable.aria_celular, R.drawable.aria_lee, R.drawable.aria_explica)
+    val aldia = listOf(R.drawable.aria_pulgar_arriba, R.drawable.aria_contenta, R.drawable.aria_de_pie)
+    val vuelve = listOf(R.drawable.aria_mochila, R.drawable.aria_espalda, R.drawable.aria_saluda)
 }
 
 fun hoyCorto(): String {

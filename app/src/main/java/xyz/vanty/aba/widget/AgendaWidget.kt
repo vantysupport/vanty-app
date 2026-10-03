@@ -50,7 +50,7 @@ class AgendaWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Responsive(setOf(DpSize(180.dp, 110.dp), DpSize(250.dp, 180.dp), DpSize(250.dp, 280.dp)))
 
     private data class Item(val hora: String, val titulo: String, val sub: String?, val estado: String, val pasada: Boolean)
-    private data class Datos(val titulo: String, val contador: String?, val items: List<Item>, val vacio: String, val vista: String, val sinSesion: Boolean)
+    private data class Datos(val titulo: String, val contador: String?, val items: List<Item>, val vacio: String, val vista: String, val sinSesion: Boolean, val aria: List<Int> = Secuencia.trabaja)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val d = datos(Prefs(context))
@@ -65,16 +65,20 @@ class AgendaWidget : GlanceAppWidget() {
                 Item(hora12(c.getOrElse(1) { "" }).ifBlank { "—" }, cuando(c[0], ""),
                     c.getOrElse(2) { "" }.ifBlank { null }, c.getOrElse(3) { "" }, false)
             }
-            return Datos(L("Próximas citas", "Upcoming visits"), items.size.takeIf { it > 0 }?.toString(), items,
-                L("No hay citas agendadas", "No visits scheduled"), "citas", false)
+            return Datos(L("Próximas citas", "Upcoming visits"), if (items.isEmpty()) hoyCorto() else L("${items.size} agendadas", "${items.size} scheduled"), items,
+                L("No hay citas agendadas", "No visits scheduled"), "citas", false, if (items.isEmpty()) Secuencia.descansa else Secuencia.saluda)
         }
         val a = p.agendaHoy?.takeIf { it.fecha == LocalDate.now().toString() }
         val ahora = LocalTime.now().toString().take(5)
         val items = a?.citas.orEmpty()
             .map { Item(hora12(it.hora).ifBlank { "—" }, it.paciente.split(' ').take(2).joinToString(" "), null, it.estado, it.estado == "completed" || (it.hora.isNotBlank() && it.hora < ahora)) }
             .sortedWith(compareBy<Item> { it.pasada }) // lo que falta, arriba
-        return Datos(L("Agenda de hoy", "Today's schedule"), a?.takeIf { it.total > 0 }?.let { "${it.hechas}/${it.total}" }, items,
-            L("Día libre: no hay sesiones hoy", "Free day: no sessions today"), "agenda", false)
+        val total = a?.total ?: 0
+        val hechas = a?.hechas ?: 0
+        return Datos(L("Agenda de hoy", "Today's schedule"),
+            if (total > 0) L("$hechas de $total hechas", "$hechas of $total done") else hoyCorto(), items,
+            L("Día libre: no hay sesiones hoy", "Free day: no sessions today"), "agenda", false,
+            when { total == 0 -> Secuencia.descansa; hechas >= total -> Secuencia.celebra; else -> Secuencia.trabaja })
     }
 
     @Composable
@@ -84,11 +88,11 @@ class AgendaWidget : GlanceAppWidget() {
         val max = when { alto >= 280.dp -> 5; alto >= 180.dp -> 3; else -> 1 }
         Box(GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_tarjeta)).cornerRadius(24.dp).clickable(abrir(ctx, d.vista))) {
             Column(GlanceModifier.fillMaxSize().padding(14.dp)) {
-                Cabecera(d.titulo, d.contador ?: hoyCorto())
+                Cabecera(d.titulo, d.contador ?: hoyCorto(), if (d.items.isEmpty()) null else d.aria)
                 Spacer(GlanceModifier.height(10.dp))
                 if (d.items.isEmpty()) {
                     Row(GlanceModifier.fillMaxWidth().defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-                        Image(ImageProvider(R.drawable.aria_cafe), "ARIA", GlanceModifier.size(if (alto >= 180.dp) 72.dp else 48.dp))
+                        AriaAnimada(d.aria, GlanceModifier.size(if (alto >= 180.dp) 84.dp else 56.dp))
                         Spacer(GlanceModifier.width(10.dp))
                         Text(d.vacio, style = TextStyle(color = Wc.suave, fontSize = 13.sp, fontWeight = FontWeight.Medium), maxLines = 3)
                     }
