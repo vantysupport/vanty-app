@@ -126,10 +126,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun alVolverAlFrente() {
         if (_e.value.fase != Fase.Login || !_e.value.entrando) return
-        val desde = System.currentTimeMillis()
+        val desde = System.currentTimeMillis() - 1500 // la vuelta (onNewIntent) llega justo antes de onResume
         viewModelScope.launch {
             kotlinx.coroutines.delay(2500)
-            if (vueltaOAuth < desde && _e.value.fase == Fase.Login && _e.value.entrando) _e.update { it.copy(entrando = false) }
+            if (_e.value.fase != Fase.Login) return@launch
+            // El navegador ya dejó la sesión lista pero no llegó el aviso de la vuelta: se entra igual
+            if (Backend.supabase.auth.currentUserOrNull() != null) { volvioDeOAuth(); return@launch }
+            if (vueltaOAuth < desde && _e.value.entrando) _e.update { it.copy(entrando = false) }
         }
     }
 
@@ -147,7 +150,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         "Ese correo no tiene una cuenta en Vanty. Pide una invitación a tu centro o crea tu centro desde vanty.xyz.",
                         "That email doesn't have a Vanty account. Ask your center for an invitation or create your center at vanty.xyz."))
                 }
-                null -> _e.update { it.copy(entrando = false, errorLogin = L("Sin conexión. Revisa tu internet e intenta de nuevo.", "No connection. Check your internet and try again.")) }
+                null -> {
+                    // Si igual hay sesión (el error fue al revisar la cuenta), se intenta entrar
+                    if (Backend.supabase.auth.currentUserOrNull() != null) cargarTodo()
+                    else _e.update { it.copy(entrando = false, errorLogin = L("No se pudo completar el inicio con Google. Intenta de nuevo.", "Couldn't finish signing in. Try again.")) }
+                }
             }
         }
     }
@@ -326,6 +333,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             VigiaWorker.programar(getApplication())
             if (hijo != null) cargarHijo(hijo)
         } catch (ex: Exception) {
+            // Entrando desde el login: que se vea qué pasó en vez de quedarse sin respuesta
+            if (_e.value.fase == Fase.Login) {
+                _e.update { it.copy(entrando = false, errorLogin = L("No se pudo entrar: ", "Couldn't sign in: ") + (ex.message ?: ex::class.simpleName).orEmpty().take(140)) }
+                return
+            }
             // Sin conexión al abrir: mostramos lo guardado y dejamos reintentar
             val equipo = Rol.de(prefs.rol) in setOf(Rol.Especialista, Rol.Secretaria, Rol.Admin)
             _e.update {
