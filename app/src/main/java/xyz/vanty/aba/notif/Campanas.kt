@@ -39,18 +39,22 @@ object Campanas {
         if (!Avisos.permitidas(ctx)) return
         val desde = Instant.now().minus(3, ChronoUnit.DAYS).toString()
         val familia = Rol.de(p.rol) == Rol.Familia
-        val avisos: List<Triple<String, String, Pair<String, String?>>> = runCatching {
+        val avisos: List<Triple<String, String, Triple<String, String?, String?>>> = runCatching {
             if (familia) Backend.supabase.from("notifications").select(Columns.list("id", "title", "message", "metadata")) {
                 filter { eq("user_id", yo); eq("type", "aviso_plataforma"); gte("created_at", desde) }
                 order("created_at", Order.ASCENDING); limit(5)
-            }.decodeList<AvisoFamilia>().map { Triple(it.id, it.title.orEmpty(), it.message.orEmpty() to it.metadata?.get("pose")?.jsonPrimitive?.contentOrNull) }
+            }.decodeList<AvisoFamilia>().map { Triple(it.id, it.title.orEmpty(), Triple(it.message.orEmpty(), it.metadata?.get("pose")?.jsonPrimitive?.contentOrNull, it.metadata?.get("campana_id")?.jsonPrimitive?.contentOrNull)) }
             else Backend.supabase.from("notificaciones").select(Columns.list("id", "titulo", "mensaje", "metadata")) {
                 filter { eq("user_id", yo); eq("tipo", "aviso_plataforma"); gte("created_at", desde) }
                 order("created_at", Order.ASCENDING); limit(5)
-            }.decodeList<AvisoEquipo>().map { Triple(it.id, it.titulo.orEmpty(), it.mensaje.orEmpty() to it.metadata?.get("pose")?.jsonPrimitive?.contentOrNull) }
+            }.decodeList<AvisoEquipo>().map { Triple(it.id, it.titulo.orEmpty(), Triple(it.mensaje.orEmpty(), it.metadata?.get("pose")?.jsonPrimitive?.contentOrNull, it.metadata?.get("campana_id")?.jsonPrimitive?.contentOrNull)) }
         }.getOrDefault(emptyList())
         for ((id, titulo, resto) in avisos) {
             if (titulo.isBlank() || p.yaAvisado("campana_$id")) continue
+            // Si ya llegó al instante por Firebase (misma campaña), no se repite
+            val campana = resto.third
+            if (campana != null && p.yaAvisado("campanaid_$campana")) { p.marcarAvisado("campana_$id"); continue }
+            campana?.let { p.marcarAvisado("campanaid_$it") }
             Avisos.mostrar(ctx, ID_CAMPANA + (id.hashCode() and 0xFFF), Avisos.CANAL_LOGROS, pose(resto.second), titulo, resto.first,
                 if (familia) "inicio" else "hoy")
             p.marcarAvisado("campana_$id")

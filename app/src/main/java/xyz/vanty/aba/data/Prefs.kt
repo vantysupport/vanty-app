@@ -134,6 +134,11 @@ class Prefs(context: Context) {
         get() = sp.getString("version_pospuesta", "") ?: ""
         set(v) = sp.edit { putString("version_pospuesta", v) }
 
+    /** Token de Firebase de este celular (para darlo de baja al cerrar sesión). */
+    var tokenPush: String?
+        get() = sp.getString("token_push", null)
+        set(v) = sp.edit { if (v == null) remove("token_push") else putString("token_push", v) }
+
     /** Avisos ya enviados (clave → fecha), para no repetirlos. */
     fun yaAvisado(clave: String) = sp.getBoolean("aviso_$clave", false)
     fun marcarAvisado(clave: String) = sp.edit { putBoolean("aviso_$clave", true) }

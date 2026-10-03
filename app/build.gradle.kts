@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    // Firebase Cloud Messaging (avisos al instante). Lee app/google-services.json
+    alias(libs.plugins.google.services)
 }
 
 val local = Properties().apply {
@@ -90,4 +92,8 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
     implementation(libs.kotlinx.serialization.json)
+
+    // Solo Cloud Messaging: sin Analytics ni otros servicios de Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 }

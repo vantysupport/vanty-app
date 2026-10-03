@@ -165,6 +165,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun salir() {
         viewModelScope.launch {
+            runCatching { xyz.vanty.aba.notif.PushApp.olvidar(getApplication()) } // antes de cerrar la sesión (RLS)
             Repo.salir()
             prefs.limpiarSesion()
             VigiaWorker.cancelar(getApplication())
