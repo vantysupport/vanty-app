@@ -55,16 +55,10 @@ private suspend fun traerVersion(): InfoVersion? = runCatching {
     )
 }.getOrNull()
 
-/** ¿La app se instaló desde Google Play? Entonces se actualiza por Play (sus políticas no permiten otra vía). */
-private fun desdePlay(ctx: Context): Boolean = runCatching {
-    val origen = if (Build.VERSION.SDK_INT >= 30) ctx.packageManager.getInstallSourceInfo(ctx.packageName).installingPackageName
-    else @Suppress("DEPRECATION") ctx.packageManager.getInstallerPackageName(ctx.packageName)
-    origen == "com.android.vending"
-}.getOrDefault(false)
 
 private fun actualizar(ctx: Context, info: InfoVersion) {
     val destino = when {
-        desdePlay(ctx) -> "market://details?id=${ctx.packageName}"
+        xyz.vanty.aba.util.instaladaDesdePlay(ctx) -> "market://details?id=${ctx.packageName}"
         info.urlApk.isNotBlank() -> info.urlApk
         else -> "https://play.google.com/store/apps/details?id=${ctx.packageName}"
     }

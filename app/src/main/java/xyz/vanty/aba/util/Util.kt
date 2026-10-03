@@ -95,3 +95,14 @@ fun saludoSegunHora(): String = when (LocalTime.now().hour) {
     in 12..18 -> L("Buenas tardes", "Good afternoon")
     else -> L("Buenas noches", "Good evening")
 }
+
+
+/**
+ * ¿La app se instaló desde Google Play? Entonces se actualiza por Play y no muestra pagos (sus políticas lo
+ * exigen). Instalada como APK, sí: los pagos se abren en el navegador.
+ */
+fun instaladaDesdePlay(ctx: android.content.Context): Boolean = runCatching {
+    val origen = if (android.os.Build.VERSION.SDK_INT >= 30) ctx.packageManager.getInstallSourceInfo(ctx.packageName).installingPackageName
+    else @Suppress("DEPRECATION") ctx.packageManager.getInstallerPackageName(ctx.packageName)
+    origen == "com.android.vending"
+}.getOrDefault(false)

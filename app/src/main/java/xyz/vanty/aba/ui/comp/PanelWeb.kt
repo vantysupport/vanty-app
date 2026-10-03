@@ -81,7 +81,9 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier, alSali
     var web by remember { mutableStateOf<WebView?>(null) }
     var reintentos by remember(panel, vista) { mutableStateOf(0) }
     var reintentar by remember { mutableStateOf(0) }
-    val ruta = "/${Backend.idioma}/$panel?vista=$vista&embebido=1"
+    // Instalada como APK (fuera de Google Play): la web sí muestra los pagos (se abren en el navegador)
+    val pagos = if (xyz.vanty.aba.util.instaladaDesdePlay(ctx)) "" else "&pagos=1"
+    val ruta = "/${Backend.idioma}/$panel?vista=$vista&embebido=1$pagos"
     // La web deja su cookie de sesión y redirige al apartado (GET /api/app/entrar con el token en el encabezado)
     val destino = "${BuildConfig.API_BASE_URL}/api/app/entrar?destino=" + java.net.URLEncoder.encode(ruta, "UTF-8")
     var token by remember { mutableStateOf("") }
