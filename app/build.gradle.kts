@@ -27,8 +27,10 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        buildConfigField("String", "SUPABASE_URL", "\"${cfg("SUPABASE_URL")}\"")
-        buildConfigField("String", "SUPABASE_KEY", "\"${cfg("SUPABASE_KEY")}\"")
+        // Valores públicos de Vanty (la clave "anon" es pública por diseño: los datos los protege RLS en Supabase).
+        // Se pueden cambiar en local.properties; nunca pongas aquí la service_role ni otras claves secretas.
+        buildConfigField("String", "SUPABASE_URL", "\"${cfg("SUPABASE_URL", "https://ylcnfqkhivqwjeifuhbl.supabase.co")}\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"${cfg("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsY25mcWtoaXZxd2plaWZ1aGJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMTQyMDksImV4cCI6MjEwNTY5MDIwOX0.zyhHMD2G0Rb-cmpldp6TO1fhrkRsfTLW2txMythLMQ8")}\"")
         buildConfigField("String", "API_BASE_URL", "\"${cfg("API_BASE_URL", "https://vanty.xyz")}\"")
     }
 
