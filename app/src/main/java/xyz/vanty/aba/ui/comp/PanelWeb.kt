@@ -218,6 +218,18 @@ private suspend fun tokenFresco(): Pair<String?, String?> = runCatching {
 
 /** Recibe los archivos que la web genera en el navegador (informes Word/PDF, Excel, recibos) y los abre. */
 private class Puente(private val ctx: Context) {
+    /** La web cambió a claro u oscuro: la app (cabecera, barra y pantallas nativas) la sigue. */
+    @JavascriptInterface
+    fun tema(modo: String?) {
+        val m = if (modo == "dark") "dark" else "light"
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            if (xyz.vanty.aba.util.TemaApp.actual != m) {
+                xyz.vanty.aba.util.TemaApp.actual = m
+                xyz.vanty.aba.data.Prefs(ctx).tema = m
+            }
+        }
+    }
+
     @JavascriptInterface
     fun guardar(base64: String, mime: String?, nombre: String?) {
         runCatching {
@@ -237,6 +249,8 @@ private class Puente(private val ctx: Context) {
 // (y URL.createObjectURL) para mandar el archivo a la app.
 private const val SCRIPT_DESCARGAS = """
 (function(){if(window.__vantyApp)return;window.__vantyApp=1;
+function tema(){try{VantyApp.tema(document.documentElement.classList.contains('dark')?'dark':'light')}catch(e){}}
+tema();new MutationObserver(tema).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
 var blobs={};var oc=URL.createObjectURL;
 URL.createObjectURL=function(o){var u=oc.call(URL,o);try{if(o instanceof Blob)blobs[u]=o}catch(e){}return u};
 function enviar(b,n){var fr=new FileReader();fr.onloadend=function(){VantyApp.guardar(String(fr.result).split(',')[1],b.type||'application/octet-stream',n||'archivo')};fr.readAsDataURL(b)}

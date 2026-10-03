@@ -23,6 +23,16 @@ object Idioma {
     fun iniciar(ctx: Context) { actual = Prefs(ctx).idioma }
 }
 
+/** Tema claro/oscuro de la app ("system" sigue al teléfono). Lo cambia la web al elegir Apariencia. */
+object TemaApp {
+    private val estado = mutableStateOf("system")
+    var actual: String
+        get() = estado.value
+        set(v) { estado.value = if (v == "light" || v == "dark") v else "system" }
+
+    fun iniciar(ctx: Context) { actual = Prefs(ctx).tema }
+}
+
 val EN: Boolean get() = Idioma.actual == "en"
 
 fun L(es: String, en: String) = if (EN) en else es

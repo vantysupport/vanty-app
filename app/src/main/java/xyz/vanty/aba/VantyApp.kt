@@ -8,6 +8,7 @@ class VantyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Idioma.iniciar(this)
+        xyz.vanty.aba.util.TemaApp.iniciar(this)
         Avisos.crearCanales(this)
     }
 }

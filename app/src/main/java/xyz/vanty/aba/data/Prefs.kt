@@ -97,6 +97,11 @@ class Prefs(context: Context) {
         get() = sp.getString("idioma", null) ?: if (java.util.Locale.getDefault().language == "en") "en" else "es"
         set(v) = sp.edit { putString("idioma", v) }
 
+    /** "system" | "light" | "dark": el tema elegido en Mi perfil (la web) también aplica a la app. */
+    var tema: String
+        get() = sp.getString("tema", null) ?: "system"
+        set(v) = sp.edit { putString("tema", v) }
+
     var recordatorioActivo: Boolean
         get() = sp.getBoolean("recordatorio_activo", true)
         set(v) = sp.edit { putBoolean("recordatorio_activo", v) }

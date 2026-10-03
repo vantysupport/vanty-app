@@ -42,7 +42,17 @@ class MainActivity : ComponentActivity() {
         volverDeOAuth(intent)
 
         setContent {
-            VantyTheme {
+            val sistemaOscuro = androidx.compose.foundation.isSystemInDarkTheme()
+            val oscuro = when (xyz.vanty.aba.util.TemaApp.actual) { "dark" -> true; "light" -> false; else -> sistemaOscuro }
+            // Íconos de la barra de estado claros u oscuros según el tema de la app
+            androidx.compose.runtime.LaunchedEffect(oscuro) {
+                val t = android.graphics.Color.TRANSPARENT
+                enableEdgeToEdge(
+                    statusBarStyle = if (oscuro) androidx.activity.SystemBarStyle.dark(t) else androidx.activity.SystemBarStyle.light(t, t),
+                    navigationBarStyle = if (oscuro) androidx.activity.SystemBarStyle.dark(t) else androidx.activity.SystemBarStyle.light(t, t),
+                )
+            }
+            VantyTheme(oscuro = oscuro) {
                 val e by vm.e.collectAsStateWithLifecycle()
                 AnimatedContent(
                     targetState = e.fase,
