@@ -178,36 +178,63 @@ private val ITEMS = listOf(
 private fun BarraInferior(actual: Pestana, onClick: (Pestana) -> Unit) =
     BarraNav(ITEMS.map { ItemBarra(it.p, it.icono, L(it.es, it.en)) }, if (actual.enBarra) actual else Pestana.Mas, onClick)
 
-/** Antes del permiso del sistema, ARIA explica para qué sirve (mejor tasa de aceptación). */
+/** Para no insistir dos veces en la misma apertura de la app (se vuelve a preguntar la próxima vez que se abra). */
+private var permisoPreguntadoAhora = false
+
+/**
+ * Al entrar: si las notificaciones están apagadas, ARIA explica para qué sirven y pide el permiso del sistema.
+ * Si la persona ya lo negó antes (Android no deja volver a mostrar el cuadro), el botón abre los ajustes de
+ * notificaciones de la app. Se vuelve a preguntar en cada apertura hasta que estén activadas.
+ */
 @Composable
 fun PedirPermisoNotificaciones(equipo: Boolean = false) {
-    if (Build.VERSION.SDK_INT < 33) return
     val ctx = LocalContext.current
     val prefs = remember { Prefs(ctx) }
-    var mostrar by remember { mutableStateOf(!prefs.permisoPedido && !Avisos.permitidas(ctx)) }
+    var mostrar by remember { mutableStateOf(!permisoPreguntadoAhora && !Avisos.permitidas(ctx)) }
     val lanzador = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) Avisos.prueba(ctx)
     }
     if (!mostrar) return
+    val actividad = ctx as? android.app.Activity
+    // En Android 13+ el cuadro del sistema solo aparece si no se negó "para siempre"; si no, toca ir a ajustes
+    val conCuadro = Build.VERSION.SDK_INT >= 33 &&
+        ContextCompatPermiso.falta(ctx) &&
+        (!prefs.permisoPedido || actividad?.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) == true)
+    fun cerrar() { mostrar = false; permisoPreguntadoAhora = true }
     AlertDialog(
-        onDismissRequest = { mostrar = false; prefs.permisoPedido = true },
+        onDismissRequest = { cerrar() },
         icon = { AriaFlotando(Aria.SALUDO, 110.dp) },
         title = {
             Text(if (equipo) L("¿Te aviso de tus sesiones?", "Can I remind you about your sessions?")
             else L("¿Te aviso para no perder la racha?", "Can I remind you about your streak?"))
         },
         text = {
-            Text(if (equipo) L("ARIA te enviará el resumen de tu día cada mañana y te avisará antes de cada sesión. Nada de spam.",
+            Text((if (equipo) L("ARIA te enviará el resumen de tu día cada mañana y te avisará antes de cada sesión. Nada de spam.",
                 "ARIA will send you your day's summary every morning and remind you before each session. No spam.")
             else L("ARIA te enviará un recordatorio para practicar en casa y te avisará antes de cada cita. Nada de spam.",
-                "ARIA will remind you to practice at home and let you know before each appointment. No spam."))
+                "ARIA will remind you to practice at home and let you know before each appointment. No spam.")) +
+                if (conCuadro) "" else L("\n\nActívalas en Ajustes → Notificaciones.", "\n\nTurn them on in Settings → Notifications."))
         },
         confirmButton = {
             TextButton({
-                mostrar = false; prefs.permisoPedido = true
-                lanzador.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }) { Text(L("¡Sí, avísame!", "Yes, remind me!"), fontWeight = FontWeight.Bold) }
+                cerrar()
+                if (conCuadro) {
+                    prefs.permisoPedido = true
+                    lanzador.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    runCatching {
+                        ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    }
+                }
+            }) { Text(if (conCuadro) L("¡Sí, avísame!", "Yes, remind me!") else L("Abrir ajustes", "Open settings"), fontWeight = FontWeight.Bold) }
         },
-        dismissButton = { TextButton({ mostrar = false; prefs.permisoPedido = true }) { Text(L("Ahora no", "Not now")) } },
+        dismissButton = { TextButton({ cerrar() }) { Text(L("Ahora no", "Not now")) } },
     )
+}
+
+private object ContextCompatPermiso {
+    fun falta(ctx: android.content.Context) = Build.VERSION.SDK_INT >= 33 &&
+        androidx.core.content.ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
 }

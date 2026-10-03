@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Logo centrado dentro de la zona segura (66dp) del ícono adaptativo de 108dp. -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:width="52dp" android:height="38.5dp" android:gravity="center"
-        android:drawable="@drawable/vanty_mark_white" />
-</layer-list>
+<!-- Logo oficial (V + ABA) dentro de la zona segura del ícono adaptativo: 108dp de lienzo, el logo mide 50dp
+     de ancho para que ningún recorte del lanzador (círculo, gota, cuadrado) corte el "ABA". -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/ic_launcher_marca" android:gravity="fill" />
