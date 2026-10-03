@@ -14,6 +14,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Shader
+import android.widget.RemoteViews
 import android.os.Build
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
@@ -26,8 +27,9 @@ import xyz.vanty.aba.util.L
 import java.time.LocalDate
 
 /**
- * Notificaciones al estilo Duolingo: aviso estándar del sistema con ARIA en un círculo, título con
- * emoji que te llama por tu nombre y texto con gancho (a veces con un poquito de drama).
+ * Notificaciones al estilo Duolingo: el aviso entero pintado de azul Vanty con ARIA a la derecha (así se
+ * reconoce la app por el color y la mascota, sin nombre), título con emoji que te llama por tu nombre y
+ * texto con gancho (a veces con un poquito de drama).
  */
 object Avisos {
     const val CANAL_RACHA = "racha"
@@ -84,15 +86,25 @@ object Avisos {
     ) {
         if (!permitidas(ctx)) return
         val toque = abrir(ctx, vista, id)
-        // Igual que Duolingo: notificación estándar del sistema (sin tarjeta pintada), con ARIA en un
-        // círculo como "foto" del remitente, título con emoji y el texto completo al desplegarla.
+        // Igual que el aviso pintado de Duolingo: la notificación entera es un bloque azul de Vanty con
+        // ARIA, sin la cabecera "Vanty ABA • ahora" (sin DecoratedCustomViewStyle). En Android 11 o
+        // menos ocupa todo el aviso; desde Android 12 el sistema siempre añade su cabecera pequeña.
+        fun pintada(layout: Int, cara: Boolean) = RemoteViews(ctx.packageName, layout).apply {
+            setInt(R.id.raiz, "setBackgroundResource", tema.fondo)
+            setTextViewText(R.id.titulo, titulo)
+            setTextViewText(R.id.texto, texto)
+            if (cara) setImageViewBitmap(R.id.aria, recorteAria(ctx, pose)) else setImageViewResource(R.id.aria, pose.img)
+        }
+        val chica = pintada(R.layout.notif_aria, cara = true)
         val b = NotificationCompat.Builder(ctx, canal)
             .setSmallIcon(R.drawable.ic_stat_vanty)
             .setColor(ContextCompat.getColor(ctx, R.color.vanty_blue))
-            .setLargeIcon(caraAria(ctx, pose))
+            .setLargeIcon(caraAria(ctx, pose)) // relojes y vistas que no muestran el diseño pintado
             .setContentTitle(titulo)
             .setContentText(texto)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(texto))
+            .setCustomContentView(chica)
+            .setCustomBigContentView(pintada(R.layout.notif_aria_grande, cara = false))
+            .setCustomHeadsUpContentView(chica)
             .setContentIntent(toque)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
@@ -105,6 +117,17 @@ object Avisos {
     }
 
     // ── Mensajes de familias ────────────────────────────────────────────────
+    /** Mitad de arriba de ARIA (cabeza y hombros) para que en el aviso chico se vea grande, como la cara de Duo. */
+    private fun recorteAria(ctx: Context, pose: Pose): Bitmap {
+        val d = ContextCompat.getDrawable(ctx, pose.img)!!
+        val ancho = 256
+        val alto = ancho * d.intrinsicHeight / d.intrinsicWidth.coerceAtLeast(1)
+        val bmp = Bitmap.createBitmap(ancho, (alto * 0.62f).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        d.setBounds(0, 0, ancho, alto)
+        d.draw(Canvas(bmp))
+        return bmp
+    }
+
     /** ARIA dentro de un círculo celeste de Vanty, para usarla como icono grande (como Duo en Duolingo). */
     private fun caraAria(ctx: Context, pose: Pose): Bitmap {
         val lado = (ctx.resources.displayMetrics.density * 64).toInt().coerceIn(128, 256)

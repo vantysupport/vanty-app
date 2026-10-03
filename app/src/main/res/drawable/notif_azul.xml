@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fondo claro de las notificaciones de ARIA (estilo de la guía de Vanty: tarjeta celeste suave). -->
+<!-- Fondo pintado de las notificaciones de ARIA (azul de Vanty, como Duolingo usa su verde). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient android:angle="0" android:startColor="#F3F9FF" android:endColor="#D6EAFF" />
-    <corners android:radius="20dp" />
+    <gradient android:angle="0" android:startColor="#2F86F2" android:endColor="#0B57C9" />
 </shape>
