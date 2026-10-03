@@ -70,6 +70,10 @@ class MainActivity : ComponentActivity() {
                         Fase.Equipo -> EquipoScreen(e, vm)
                     }
                 }
+                // Al entrar: avisos enviados desde /control que aún no se mostraron en este celular
+                androidx.compose.runtime.LaunchedEffect(e.fase) {
+                    if (e.fase == Fase.App || e.fase == Fase.Equipo) runCatching { xyz.vanty.aba.notif.Campanas.revisar(applicationContext) }
+                }
                 // Aviso de versión nueva / "Novedades" después de actualizar
                 if (e.fase != Fase.Cargando) xyz.vanty.aba.ui.AvisoVersion()
             }

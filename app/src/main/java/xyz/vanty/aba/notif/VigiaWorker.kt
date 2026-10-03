@@ -36,6 +36,8 @@ class VigiaWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         val hoy = hoyIso()
         try {
             if (!Repo.haySesion()) return Result.success()
+            // Avisos enviados desde vanty.xyz/control → Notificaciones
+            runCatching { Campanas.revisar(ctx) }
             val rol = Rol.de(p.rol)
             if (rol == Rol.Especialista || rol == Rol.Secretaria || rol == Rol.Admin) {
                 vigilarEquipo(ctx, p, rol)
