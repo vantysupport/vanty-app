@@ -43,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,6 +72,10 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     var listo by remember(panel, vista) { mutableStateOf(false) }
     var cargando by remember { mutableStateOf(true) }
+    // La web se muestra recién cuando ya pintó el apartado (sin el destello blanco de la carga)
+    var visible by remember(panel, vista) { mutableStateOf(false) }
+    val alfa by androidx.compose.animation.core.animateFloatAsState(if (visible) 1f else 0f, androidx.compose.animation.core.tween(220), label = "web")
+    val colorFondo = T.fondo.toArgb()
     var error by remember { mutableStateOf(false) }
     var motivo by remember { mutableStateOf("") }
     var web by remember { mutableStateOf<WebView?>(null) }
@@ -117,7 +123,7 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                         settings.mediaPlaybackRequiresUserGesture = false
                         settings.allowFileAccess = false
                         settings.userAgentString = settings.userAgentString + " VantyApp/Android"
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        setBackgroundColor(colorFondo)
                         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                         addJavascriptInterface(Puente(c), "VantyApp")
                         webViewClient = object : WebViewClient() {
@@ -154,6 +160,7 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                             }
                             override fun onPageFinished(view: WebView, url: String?) {
                                 cargando = false
+                                if (url?.contains("/api/app/entrar") != true) view.postDelayed({ visible = true }, 250)
                                 // Se quedó en /api/app/entrar: la web no aceptó el token
                                 if (url?.contains("/api/app/entrar") == true) { motivo = "token"; error = true; return }
                                 view.evaluateJavascript(SCRIPT_DESCARGAS, null)
@@ -179,8 +186,11 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                         web = this
                     }
                 },
-                update = { w -> if (w.url == null) w.loadUrl(destino, mapOf("Authorization" to "Bearer $token")) },
-                modifier = Modifier.fillMaxSize(),
+                update = { w ->
+                    w.setBackgroundColor(colorFondo)
+                    if (w.url == null) w.loadUrl(destino, mapOf("Authorization" to "Bearer $token"))
+                },
+                modifier = Modifier.fillMaxSize().graphicsLayer { alpha = alfa },
             )
         }
         if (error) {
@@ -197,7 +207,7 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                 BotonGrande(L("REINTENTAR", "RETRY"), { error = false; reintentos = 0; reintentar++ })
             }
         }
-        if (!listo || cargando) {
+        if (!listo || cargando || !visible) {
             LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(CircleShape).align(Alignment.TopCenter), color = T.acento, trackColor = T.relleno)
         }
     }
