@@ -60,8 +60,11 @@ object Repo {
 
     /** Abre el navegador para entrar con Google o Microsoft ("azure"), como la web. */
     suspend fun entrarCon(proveedor: String) {
-        if (proveedor == "azure") sb.auth.signInWith(Azure) { scopes.addAll(listOf("email", "profile", "openid", "offline_access")) }
-        else sb.auth.signInWith(Google)
+        // Vuelve por vanty.xyz/auth/callback?app=1 (dirección ya permitida en Supabase); esa página le pasa el código
+        // a la app (vantyaba://login) y la app lo canjea con su verificador PKCE.
+        val vuelta = BuildConfig.API_BASE_URL + "/auth/callback?app=1"
+        if (proveedor == "azure") sb.auth.signInWith(Azure, redirectUrl = vuelta) { scopes.addAll(listOf("email", "profile", "openid", "offline_access")) }
+        else sb.auth.signInWith(Google, redirectUrl = vuelta)
     }
 
     enum class ResultadoOAuth { Ok, SinCuenta }

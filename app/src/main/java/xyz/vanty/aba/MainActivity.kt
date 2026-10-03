@@ -83,6 +83,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        vm.alVolverAlFrente()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         abrirVista(intent)
@@ -100,6 +105,7 @@ class MainActivity : ComponentActivity() {
             xyz.vanty.aba.ui.comp.Calendarios.volvio(i.data!!); return
         }
         if (i.data?.getQueryParameter("code") == null) { vm.oauthCancelado(); return }
+        vm.llegoVueltaOAuth()
         Backend.supabase.handleDeeplinks(i) { vm.volvioDeOAuth() }
     }
 

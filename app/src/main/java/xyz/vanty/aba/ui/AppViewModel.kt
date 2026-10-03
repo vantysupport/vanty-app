@@ -118,7 +118,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** El navegador volvió sin completar el inicio (la persona lo cerró). */
     fun oauthCancelado() { if (_e.value.fase == Fase.Login) _e.update { it.copy(entrando = false) } }
 
+    private var vueltaOAuth = 0L
+
+    /**
+     * La app volvió al frente: si se estaba entrando con Google/Microsoft y no llegó la vuelta del navegador
+     * (la persona lo cerró o algo falló), deja de "cargar" para que pueda intentarlo otra vez.
+     */
+    fun alVolverAlFrente() {
+        if (_e.value.fase != Fase.Login || !_e.value.entrando) return
+        val desde = System.currentTimeMillis()
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(2500)
+            if (vueltaOAuth < desde && _e.value.fase == Fase.Login && _e.value.entrando) _e.update { it.copy(entrando = false) }
+        }
+    }
+
+    /** Llegó la vuelta del navegador (se está canjeando el código): no cortar la carga. */
+    fun llegoVueltaOAuth() { vueltaOAuth = System.currentTimeMillis() }
+
     fun volvioDeOAuth() {
+        vueltaOAuth = System.currentTimeMillis()
         _e.update { it.copy(entrando = true, errorLogin = null) }
         viewModelScope.launch {
             when (runCatching { Repo.trasOAuth() }.getOrNull()) {
