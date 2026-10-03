@@ -68,7 +68,7 @@ import java.io.File
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
+fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier, alSalir: (() -> Unit)? = null) {
     val ctx = LocalContext.current
     var listo by remember(panel, vista) { mutableStateOf(false) }
     var cargando by remember { mutableStateOf(true) }
@@ -125,7 +125,7 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier) {
                         settings.userAgentString = settings.userAgentString + " VantyApp/Android"
                         setBackgroundColor(colorFondo)
                         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                        addJavascriptInterface(Puente(c), "VantyApp")
+                        addJavascriptInterface(Puente(c, alSalir), "VantyApp")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView, req: WebResourceRequest): Boolean {
                                 val u = req.url
@@ -227,7 +227,13 @@ private suspend fun tokenFresco(): Pair<String?, String?> = runCatching {
 }.getOrElse { null to "error: ${it.javaClass.simpleName} ${it.message?.take(80).orEmpty()}" }
 
 /** Recibe los archivos que la web genera en el navegador (informes Word/PDF, Excel, recibos) y los abre. */
-private class Puente(private val ctx: Context) {
+private class Puente(private val ctx: Context, private val alSalir: (() -> Unit)?) {
+    /** "Cerrar sesión" dentro de la web: cierra la sesión del teléfono (la web no la toca en modo app). */
+    @JavascriptInterface
+    fun salir() {
+        android.os.Handler(android.os.Looper.getMainLooper()).post { alSalir?.invoke() }
+    }
+
     /** La web cambió a claro u oscuro: la app (cabecera, barra y pantallas nativas) la sigue. */
     @JavascriptInterface
     fun tema(modo: String?) {

@@ -92,7 +92,6 @@ import xyz.vanty.aba.ui.theme.Naranja
 import xyz.vanty.aba.ui.theme.T
 import xyz.vanty.aba.util.L
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun MainScreen(e: Estado, vm: AppViewModel) {
     val snack = remember { SnackbarHostState() }
@@ -100,45 +99,23 @@ fun MainScreen(e: Estado, vm: AppViewModel) {
         e.aviso?.let { snack.showSnackbar(it); vm.avisoMostrado() }
     }
     PedirPermisoNotificaciones()
-    // Atrás: de una subsección vuelve a "Más"; de una pestaña vuelve a Inicio
-    BackHandler(enabled = e.pestana != Pestana.Inicio) { vm.irA(if (e.pestana.enBarra) Pestana.Inicio else Pestana.Mas) }
 
+    // El apartado de familias es la web real (vanty.xyz/padre en "modo app"): mismas pantallas, misma
+    // navegación y mismos datos que en la computadora. Lo nativo queda para notificaciones y widgets.
+    val vistaWeb = when (e.pestana) {
+        Pestana.Citas -> "miscitas"
+        Pestana.Aria -> "chat"
+        Pestana.Chat -> "chat-familias"
+        Pestana.Practicar -> "engagement"
+        Pestana.Perfil -> "profile"
+        Pestana.Recursos, Pestana.Formularios -> "misformularios"
+        Pestana.Documentos -> "documentos"
+        Pestana.Evaluacion -> "evaluacion-inicial"
+        else -> "home"
+    }
     Box(Modifier.fillMaxSize().background(T.fondo)) {
-        // Con el teclado abierto: el contenido sube sobre el teclado y la barra inferior se oculta
-        Column(Modifier.fillMaxSize().imePadding()) {
-            BarraSuperior(e, vm)
-            AnimatedContent(
-                targetState = e.pestana,
-                transitionSpec = {
-                    val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
-                    (slideInHorizontally(spring(0.85f, 400f)) { it / 5 * dir } + fadeIn()) togetherWith
-                        (slideOutHorizontally(spring(0.85f, 400f)) { -it / 5 * dir } + fadeOut())
-                },
-                modifier = Modifier.weight(1f),
-                label = "pestanas",
-            ) { p ->
-                val pad = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)
-                when (p) {
-                    Pestana.Inicio -> HomeScreen(e, vm, pad)
-                    Pestana.Citas -> CitasScreen(e, vm, pad)
-                    Pestana.Aria -> AriaFamiliaScreen(e, vm)
-                    Pestana.Chat -> ChatCentroScreen(e)
-                    Pestana.Mas -> MasFamiliaScreen(e, vm, pad)
-                    Pestana.Practicar -> PracticaScreen(e, vm, pad)
-                    Pestana.Perfil -> PerfilScreen(e, vm, pad)
-                    Pestana.Recursos -> RecursosScreen(e, vm, pad)
-                    Pestana.Documentos -> DocumentosScreen(e, vm, pad)
-                    Pestana.Formularios -> FormulariosScreen(e, vm, pad)
-                    Pestana.Evaluacion -> EvaluacionInicialScreen(e, vm, pad)
-                }
-            }
-            if (!androidx.compose.foundation.layout.WindowInsets.isImeVisible) BarraInferior(e.pestana, vm::irA)
-        }
+        xyz.vanty.aba.ui.comp.PanelWeb("padre", vistaWeb, Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding(), alSalir = vm::salir)
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 80.dp))
-
-        AnimatedVisibility(e.celebrar != null, enter = fadeIn(), exit = fadeOut()) {
-            Celebracion(e.celebrar ?: 0, e.racha, vm::cerrarCelebracion)
-        }
     }
 }
 

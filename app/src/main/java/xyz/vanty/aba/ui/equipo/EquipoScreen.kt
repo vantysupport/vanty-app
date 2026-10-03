@@ -101,7 +101,7 @@ fun EquipoScreen(app: Estado, appVm: AppViewModel) {
                 val pad = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)
                 // Los apartados del equipo se abren con la pantalla real de la web (mismas funciones que vanty.xyz)
                 val web = apartadoWeb(tab, e.perfil?.role)
-                if (web != null) xyz.vanty.aba.ui.comp.PanelWeb(web.first, web.second)
+                if (web != null) xyz.vanty.aba.ui.comp.PanelWeb(web.first, web.second, alSalir = appVm::salir)
                 else when (tab) {
                     TabEquipo.Hoy -> when (e.rol) {
                         Rol.Admin -> InicioAdminScreen(e, vm, pad)
