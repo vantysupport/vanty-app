@@ -90,7 +90,12 @@ class MainActivity : ComponentActivity() {
     private fun volverDeOAuth(i: Intent?) {
         if (i?.data?.scheme != "vantyaba") return
         // Vuelta de vincular Google Calendar / Outlook
-        if (i.data?.host == "calendario") { xyz.vanty.aba.ui.comp.Calendarios.volvio(i.data!!); return }
+        if (i.data?.host == "calendario") {
+            val ok = i.data?.query.orEmpty().contains("cal=connected")
+            android.widget.Toast.makeText(this, if (ok) xyz.vanty.aba.util.L("Calendario conectado", "Calendar connected")
+                else xyz.vanty.aba.util.L("No se pudo conectar el calendario", "Couldn't connect the calendar"), android.widget.Toast.LENGTH_LONG).show()
+            xyz.vanty.aba.ui.comp.Calendarios.volvio(i.data!!); return
+        }
         if (i.data?.getQueryParameter("code") == null) { vm.oauthCancelado(); return }
         Backend.supabase.handleDeeplinks(i) { vm.volvioDeOAuth() }
     }

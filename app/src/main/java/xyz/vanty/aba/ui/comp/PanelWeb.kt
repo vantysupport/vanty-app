@@ -67,6 +67,13 @@ import java.io.File
  * renovación de la app, así no se cierra la sesión del teléfono.
  */
 @SuppressLint("SetJavaScriptEnabled")
+/** Pide recargar la web abierta (lo usa la vuelta de vincular calendarios). */
+object RecargaWeb {
+    var n by androidx.compose.runtime.mutableIntStateOf(0)
+        private set
+    fun pedir() { n++ }
+}
+
 @Composable
 fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier, alSalir: (() -> Unit)? = null) {
     val ctx = LocalContext.current
@@ -104,6 +111,9 @@ fun PanelWeb(panel: String, vista: String, modifier: Modifier = Modifier, alSali
 
     // La sesión de la web venció: se renueva y se vuelve a abrir (máximo 2 veces seguidas)
     fun volverAEntrar() { if (reintentos < 2) reintentos++ else { motivo = "login"; error = true } }
+
+    // Al volver del navegador (p. ej. tras vincular Google Calendar) se recarga la pantalla para ver el cambio
+    LaunchedEffect(RecargaWeb.n) { if (RecargaWeb.n > 0) web?.reload() }
 
     LaunchedEffect(panel, vista, reintentos, reintentar) {
         listo = false

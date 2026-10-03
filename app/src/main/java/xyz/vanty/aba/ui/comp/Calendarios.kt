@@ -77,6 +77,7 @@ object Calendarios {
             }
         } ?: return
         _vuelta.tryEmit(msg)
+        RecargaWeb.pedir()
     }
 
     data class Estado(val conectado: Boolean, val email: String?)
