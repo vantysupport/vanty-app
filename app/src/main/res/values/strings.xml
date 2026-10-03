@@ -3,6 +3,10 @@
     <string name="app_name">Vanty ABA</string>
     <string name="widget_racha_nombre">ARIA</string>
     <string name="widget_racha_desc">ARIA cambia de ánimo según tu racha y tu día</string>
-    <string name="widget_resumen_nombre">Tu resumen</string>
-    <string name="widget_resumen_desc">Racha, próxima cita y mensajes (o tu día, si eres del equipo)</string>
+    <string name="widget_resumen_nombre">Hoy en Vanty</string>
+    <string name="widget_resumen_desc">Lo clave de tu día según tu rol: racha y próxima cita, o tus sesiones y lo que sigue</string>
+    <string name="widget_agenda_nombre">Agenda</string>
+    <string name="widget_agenda_desc">Tus sesiones de hoy o las próximas citas, con su hora y estado</string>
+    <string name="widget_mensajes_nombre">Mensajes</string>
+    <string name="widget_mensajes_desc">Mensajes sin leer del centro o del equipo</string>
 </resources>

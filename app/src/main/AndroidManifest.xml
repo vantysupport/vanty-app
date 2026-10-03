@@ -69,5 +69,27 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/resumen_widget_info" />
         </receiver>
+        <receiver
+            android:name=".widget.AgendaWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_agenda_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/agenda_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.MensajesWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_mensajes_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/mensajes_widget_info" />
+        </receiver>
     </application>
 </manifest>

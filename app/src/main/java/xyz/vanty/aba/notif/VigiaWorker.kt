@@ -49,11 +49,11 @@ class VigiaWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
                 p.rachaFecha = hoy
             }
             p.usuarioId?.let { p.sinLeer = xyz.vanty.aba.data.Comun.sinLeer(it) }
-            runCatching { Repo.citasProximas(hijoId).firstOrNull() }.getOrNull().let { c ->
-                p.proximaCita = c?.let { "${it.fecha.take(10)}|${it.hora?.take(5).orEmpty()}" }
+            runCatching { Repo.citasProximas(hijoId) }.getOrNull()?.let { l ->
+                p.proximaCita = l.firstOrNull()?.let { "${it.fecha.take(10)}|${it.hora?.take(5).orEmpty()}" }
+                p.citasFamilia = xyz.vanty.aba.widget.lineasCitas(l, p.nombreHijo.substringBefore(' '))
             }
-            RachaWidget.actualizar(ctx)
-            xyz.vanty.aba.widget.ResumenWidget.actualizar(ctx)
+            xyz.vanty.aba.widget.actualizarWidgets(ctx)
 
             val hora = LocalTime.now().hour
             if (p.recordatorioActivo && racha != null && !racha.hoy) {
@@ -87,8 +87,7 @@ class VigiaWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         AvisosEquipo.guardarHoy(ctx, citas, programarRecordatorios = rol == Rol.Especialista)
         val activas = citas.filter { it.estado != EstadoCita.Cancelada }
         p.usuarioId?.let { p.sinLeer = xyz.vanty.aba.data.Comun.sinLeer(it) }
-        RachaWidget.actualizar(ctx)
-        xyz.vanty.aba.widget.ResumenWidget.actualizar(ctx)
+        xyz.vanty.aba.widget.actualizarWidgets(ctx)
 
         if (p.resumenDiario && hora in 7..10 && !p.yaAvisado("resumen_$hoy")) {
             when (rol) {

@@ -36,6 +36,11 @@ class Prefs(context: Context) {
         get() = sp.getString("proxima_cita", null)
         set(v) = sp.edit { putString("proxima_cita", v) }
 
+    /** Próximas citas de la familia para el widget de agenda: líneas "YYYY-MM-DD|HH:MM|Nombre|estado". */
+    var citasFamilia: List<String>
+        get() = (sp.getString("citas_familia", "") ?: "").lines().filter { it.isNotBlank() }
+        set(v) = sp.edit { putString("citas_familia", v.joinToString("\n")) }
+
     /** Avisos/mensajes sin leer, para el widget "Tu resumen". */
     var sinLeer: Int
         get() = sp.getInt("sin_leer", 0)
@@ -118,6 +123,16 @@ class Prefs(context: Context) {
     var permisoPedido: Boolean
         get() = sp.getBoolean("permiso_pedido", false)
         set(v) = sp.edit { putBoolean("permiso_pedido", v) }
+
+    /** Última versión de la app que se abrió (para mostrar las "Novedades" una vez después de actualizar). */
+    var versionVista: Int
+        get() = sp.getInt("version_vista", 0)
+        set(v) = sp.edit { putInt("version_vista", v) }
+
+    /** "versión|fecha" en que se tocó "Más tarde" en el aviso de nueva versión (se vuelve a avisar al día siguiente). */
+    var versionPospuesta: String
+        get() = sp.getString("version_pospuesta", "") ?: ""
+        set(v) = sp.edit { putString("version_pospuesta", v) }
 
     /** Avisos ya enviados (clave → fecha), para no repetirlos. */
     fun yaAvisado(clave: String) = sp.getBoolean("aviso_$clave", false)

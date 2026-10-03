@@ -2,6 +2,10 @@
 <resources>
     <string name="widget_racha_nombre">ARIA</string>
     <string name="widget_racha_desc">ARIA\'s mood changes with your streak and your day</string>
-    <string name="widget_resumen_nombre">Your summary</string>
-    <string name="widget_resumen_desc">Streak, next visit and messages (or your day, for the team)</string>
+    <string name="widget_resumen_nombre">Today in Vanty</string>
+    <string name="widget_resumen_desc">The key things of your day for your role: streak and next visit, or your sessions and what\'s next</string>
+    <string name="widget_agenda_nombre">Schedule</string>
+    <string name="widget_agenda_desc">Today\'s sessions or upcoming visits, with time and status</string>
+    <string name="widget_mensajes_nombre">Messages</string>
+    <string name="widget_mensajes_desc">Unread messages from the center or the team</string>
 </resources>

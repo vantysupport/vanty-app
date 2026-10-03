@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Casilla interna de los widgets (dato con su etiqueta) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#F1F6FD" />
+    <corners android:radius="16dp" />
+</shape>

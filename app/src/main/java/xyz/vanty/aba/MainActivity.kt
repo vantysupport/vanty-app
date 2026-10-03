@@ -70,6 +70,8 @@ class MainActivity : ComponentActivity() {
                         Fase.Equipo -> EquipoScreen(e, vm)
                     }
                 }
+                // Aviso de versión nueva / "Novedades" después de actualizar
+                if (e.fase != Fase.Cargando) xyz.vanty.aba.ui.AvisoVersion()
             }
         }
     }

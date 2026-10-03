@@ -42,8 +42,7 @@ object AvisosEquipo {
             hechas = activas.count { it.estado == EstadoCita.Realizada },
             citas = activas.map { ItemAgenda(it.id, it.hora?.take(5).orEmpty(), it.paciente, it.estado.valor) },
         )
-        ResumenWidget.actualizar(ctx)
-        xyz.vanty.aba.widget.RachaWidget.actualizar(ctx)
+        xyz.vanty.aba.widget.actualizarWidgets(ctx)
         if (programarRecordatorios && p.avisosCitas) programarSesiones(ctx, activas)
     }
 

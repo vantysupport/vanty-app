@@ -168,7 +168,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             Repo.salir()
             prefs.limpiarSesion()
             VigiaWorker.cancelar(getApplication())
-            RachaWidget.actualizar(getApplication())
+            xyz.vanty.aba.widget.actualizarWidgets(getApplication())
             _e.value = Estado(fase = Fase.Login)
         }
     }
@@ -186,7 +186,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 Repo.ResultadoEliminar.Ok -> {
                     prefs.limpiarSesion()
                     VigiaWorker.cancelar(getApplication())
-                    RachaWidget.actualizar(getApplication())
+                    xyz.vanty.aba.widget.actualizarWidgets(getApplication())
                     _e.value = Estado(fase = Fase.Login, aviso = L("Tu cuenta fue eliminada. ¡Gracias por usar Vanty!", "Your account was deleted. Thanks for using Vanty!"))
                 }
                 Repo.ResultadoEliminar.ClaveIncorrecta -> _e.update { it.copy(eliminando = false, errorEliminar = L("Contraseña incorrecta", "Incorrect password")) }
@@ -338,8 +338,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (r != null) guardarRacha(r)
             programasOrig = progs.await(); proximasOrig = prox.await(); pasadasOrig = pas.await()
             prefs.proximaCita = proximasOrig.firstOrNull()?.let { "${it.fecha.take(10)}|${it.hora?.take(5).orEmpty()}" }
+            prefs.citasFamilia = xyz.vanty.aba.widget.lineasCitas(proximasOrig, h.primerNombre)
             _e.value.perfil?.id?.let { prefs.sinLeer = Comun.sinLeer(it) }
-            xyz.vanty.aba.widget.ResumenWidget.actualizar(getApplication())
+            xyz.vanty.aba.widget.actualizarWidgets(getApplication())
             _e.update {
                 it.copy(
                     racha = r ?: it.racha, stats = stats.await(), proximas = proximasOrig, pasadas = pasadasOrig,
@@ -385,7 +386,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val app = getApplication<Application>()
         Avisos.crearCanales(app)
         viewModelScope.launch {
-            RachaWidget.actualizar(app)
+            xyz.vanty.aba.widget.actualizarWidgets(app)
             // Sin conexión, la traducción falla: se queda el texto original (nunca cerrar la app)
             runCatching { mostrarEnIdioma() }
             // El plan semanal lo traduce el servidor según el idioma pedido
@@ -485,7 +486,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun guardarRacha(r: Racha) {
         prefs.racha = r
         prefs.rachaFecha = hoyIso()
-        RachaWidget.actualizar(getApplication())
+        xyz.vanty.aba.widget.actualizarWidgets(getApplication())
     }
 
     /** Solo para la pantalla de demostración de la versión debug. */
